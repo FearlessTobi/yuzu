@@ -27,6 +27,19 @@ matrix:
       install: "./.travis/macos/deps.sh"
       script: "./.travis/macos/build.sh"
       after_success: "./.travis/macos/upload.sh"
+    - os: linux
+      env: NAME="linux build (MinGW)"
+      sudo: required
+      dist: trusty
+      services: docker
+      addons:
+        apt:
+          packages:
+            - p7zip-full
+      install: "./.travis/linux-mingw/deps.sh"
+      script: "./.travis/linux-mingw/build.sh"
+      after_success: "./.travis/linux-mingw/upload.sh"
+      cache: ccache
 
 deploy:
   provider: releases
