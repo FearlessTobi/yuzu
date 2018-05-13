@@ -28,7 +28,7 @@ matrix:
       script: "./.travis/macos/build.sh"
       after_success: "./.travis/macos/upload.sh"
     - os: linux
-      env: NAME="linux build (MinGW)"
+      env: NAME="MinGW build"
       sudo: required
       dist: trusty
       services: docker
