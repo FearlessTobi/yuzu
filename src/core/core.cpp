@@ -4,6 +4,8 @@
 
 #include <memory>
 #include <utility>
+#include "audio_core/audio_hle.h"
+#include "audio_core/audio_interface.h"
 #include "common/logging/log.h"
 #include "core/core.h"
 #include "core/core_timing.h"
@@ -175,6 +177,11 @@ System::ResultStatus System::Init(EmuWindow* emu_window, u32 system_mode) {
     for (size_t index = 0; index < cpu_cores.size(); ++index) {
         cpu_cores[index] = std::make_shared<Cpu>(cpu_exclusive_monitor, cpu_barrier, index);
     }
+
+    audio_core =
+        std::make_unique<AudioCore::AudioHle>();
+    audio_core->SetSink(Settings::values.sink_id, Settings::values.audio_device_id);
+    audio_core->EnableStretching(Settings::values.enable_audio_stretching);
 
     gpu_core = std::make_unique<Tegra::GPU>();
     telemetry_session = std::make_unique<Core::TelemetrySession>();

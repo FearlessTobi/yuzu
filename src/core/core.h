@@ -23,6 +23,10 @@
 class EmuWindow;
 class ARM_Interface;
 
+namespace AudioCore {
+class AudioInterface; // TODO
+}
+
 namespace Service::SM {
 class ServiceManager;
 }
@@ -167,6 +171,14 @@ public:
         return *app_loader;
     }
 
+    /**
+     * Gets a reference to the audio core.
+     * @returns A reference to the emulated audio core.
+     */
+    AudioCore::AudioInterface& AudioCore() {
+        return *audio_core;
+    }
+
     Service::SM::ServiceManager& ServiceManager();
     const Service::SM::ServiceManager& ServiceManager() const;
 
@@ -192,7 +204,7 @@ private:
      */
     ResultStatus Init(EmuWindow* emu_window, u32 system_mode);
 
-    /// AppLoader used to load the current executing application
+    /// AppLoader used to load the current executing applicationz
     std::unique_ptr<Loader::AppLoader> app_loader;
     std::unique_ptr<Tegra::GPU> gpu_core;
     std::shared_ptr<Tegra::DebugContext> debug_context;
@@ -202,6 +214,9 @@ private:
     std::array<std::shared_ptr<Cpu>, NUM_CPU_CORES> cpu_cores;
     std::array<std::unique_ptr<std::thread>, NUM_CPU_CORES - 1> cpu_core_threads;
     size_t active_core{}; ///< Active core, only used in single thread mode
+
+    /// Audio core
+    std::unique_ptr<AudioCore::AudioInterface> audio_core;
 
     /// Service manager
     std::shared_ptr<Service::SM::ServiceManager> service_manager;
@@ -220,6 +235,10 @@ private:
 
 inline ARM_Interface& CurrentArmInterface() {
     return System::GetInstance().CurrentArmInterface();
+}
+
+inline AudioCore::AudioInterface& AudioCore() {
+    return System::GetInstance().AudioCore();
 }
 
 inline TelemetrySession& Telemetry() {

@@ -15,6 +15,8 @@ CMAKE_DEPENDENT_OPTION(YUZU_USE_BUNDLED_SDL2 "Download bundled SDL2 binaries" ON
 option(ENABLE_QT "Enable the Qt frontend" ON)
 CMAKE_DEPENDENT_OPTION(YUZU_USE_BUNDLED_QT "Download bundled Qt binaries" ON "ENABLE_QT;MSVC" OFF)
 
+option(ENABLE_CUBEB "Enables the cubeb audio backend" ON)
+
 option(YUZU_USE_BUNDLED_UNICORN "Build/Download bundled Unicorn" ON)
 
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/.git/hooks/pre-commit)
