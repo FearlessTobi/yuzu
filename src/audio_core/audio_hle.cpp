@@ -12,6 +12,8 @@
 
 namespace AudioCore {
 
+static constexpr u64 audio_frame_ticks = 1310252ull; ///< Units: ARM11 cycles
+
 struct AudioHle::Impl final {
 public:
     explicit Impl(AudioHle& parent);
@@ -20,12 +22,19 @@ public:
 private:
     StereoFrame16 GenerateCurrentFrame();
     bool Tick();
+    void AudioTickCallback(int cycles_late);
 
     AudioHle& parent;
     CoreTiming::EventType* tick_event;
 };
 
-AudioHle::Impl::Impl(AudioHle& parent_) : parent(parent_) {}
+AudioHle::Impl::Impl(AudioHle& parent_) : parent(parent_) {
+    tick_event =
+        CoreTiming::RegisterEvent("AudioCore::DspHle::tick_event", [this](u64, int cycles_late) {
+            this->AudioTickCallback(cycles_late);
+        });
+    CoreTiming::ScheduleEvent(audio_frame_ticks, tick_event);
+}
 
 StereoFrame16 AudioHle::Impl::GenerateCurrentFrame() {
     std::array<QuadFrame32, 3> intermediate_mixes = {};
@@ -66,6 +75,17 @@ bool AudioHle::Impl::Tick() {
     parent.OutputFrame(current_frame);
 
     return true;
+}
+
+void AudioHle::Impl::AudioTickCallback(int cycles_late) {
+
+    if (Tick()) {
+        // Service::DSP::SignalPipeInterrupt(DspPipe::Audio);
+        // Service::DSP::SignalPipeInterrupt(DspPipe::Binary);
+    }
+
+    // Reschedule recurrent event
+    CoreTiming::ScheduleEvent(audio_frame_ticks - cycles_late, tick_event);
 }
 
 AudioHle::AudioHle() : impl(std::make_unique<Impl>(*this)) {}

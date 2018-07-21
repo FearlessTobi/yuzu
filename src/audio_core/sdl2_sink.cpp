@@ -43,7 +43,7 @@ SDL2Sink::SDL2Sink(std::string device_name) : impl(std::make_unique<Impl>()) {
 
     const char* device = nullptr;
 
-    if (device_name != "auto" && !device_name.empty()) {
+    if (device_name != auto_device_name && !device_name.empty()) {
         device = device_name.c_str();
     }
 
