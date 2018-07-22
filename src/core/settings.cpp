@@ -28,11 +28,8 @@ void Apply() {
     }
 
     if (Core::System::GetInstance().IsPoweredOn()) {
-        LOG_CRITICAL(Frontend, "test");
         Core::AudioCore().SetSink(values.sink_id, values.audio_device_id);
         Core::AudioCore().EnableStretching(values.enable_audio_stretching);
-    } else {
-        LOG_CRITICAL(Frontend, "Not powered on");
     }
 
     Service::HID::ReloadInputDevices();
