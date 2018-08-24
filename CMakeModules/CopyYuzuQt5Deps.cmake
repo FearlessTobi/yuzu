@@ -19,5 +19,15 @@ function(copy_yuzu_Qt5_deps target_dir)
     )
     windows_copy_files(yuzu ${Qt5_PLATFORMS_DIR} ${PLATFORMS} qwindows$<$<CONFIG:Debug>:d>.*)
     windows_copy_files(yuzu ${Qt5_STYLES_DIR} ${STYLES} qwindowsvistastyle$<$<CONFIG:Debug>:d>.*)
-    windows_copy_files(yuzu ${Qt5_IMAGEFORMATS_DIR} ${IMAGEFORMATS} qjpeg$<$<CONFIG:Debug>:d>.*)
+    windows_copy_files(${target_dir} ${Qt5_IMAGEFORMATS_DIR} ${IMAGEFORMATS}
+        qgif$<$<CONFIG:Debug>:d>.dll
+        qicns$<$<CONFIG:Debug>:d>.dll
+        qico$<$<CONFIG:Debug>:d>.dll
+        qjpeg$<$<CONFIG:Debug>:d>.dll
+        qsvg$<$<CONFIG:Debug>:d>.dll
+        qtga$<$<CONFIG:Debug>:d>.dll
+        qtiff$<$<CONFIG:Debug>:d>.dll
+        qwbmp$<$<CONFIG:Debug>:d>.dll
+        qwebp$<$<CONFIG:Debug>:d>.dll
+    )
 endfunction(copy_yuzu_Qt5_deps)

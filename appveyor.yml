@@ -141,8 +141,8 @@ after_build:
           # copy the qt windows vista style dll to platforms
           Copy-Item -path "C:/msys64/mingw64/share/qt5/plugins/styles/qwindowsvistastyle.dll" -force -destination "$RELEASE_DIST/styles"
 
-          # copy the qt jpeg imageformat dll to platforms
-          Copy-Item -path "C:/msys64/mingw64/share/qt5/plugins/imageformats/qjpeg.dll" -force -destination "$RELEASE_DIST/imageformats"
+          # copy the qt imageformats plugin dlls to imageformats
+          Get-ChildItem "C:/msys64/mingw64/share/qt5/plugins/imageformats" -Exclude "*d.dll" | Copy-Item -force -destination "$RELEASE_DIST/imageformats"
 
           7z a -tzip $MINGW_BUILD_ZIP $RELEASE_DIST\*
           7z a $MINGW_SEVENZIP $RELEASE_DIST
