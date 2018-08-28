@@ -39,7 +39,6 @@ matrix:
       install: "./.travis/linux-mingw/deps.sh"
       script: "./.travis/linux-mingw/build.sh"
       after_success: "./.travis/linux-mingw/upload.sh"
-      cache: ccache
 
 deploy:
   provider: releases

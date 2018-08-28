@@ -16,7 +16,7 @@ wget -q https://github.com/Alexpux/mingw-w64/raw/d0d7f784833bbb0b2d279310ddc6afb
 echo 'max_size = 3.0G' > "$HOME/.ccache/ccache.conf"
 
 mkdir build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE="$(pwd)/../CMakeModules/MinGWCross.cmake" -DUSE_CCACHE=ON -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_TOOLCHAIN_FILE="$(pwd)/../CMakeModules/MinGWCross.cmake" -DCMAKE_BUILD_TYPE=Release
 make -j4
 
 echo "Tests skipped"
