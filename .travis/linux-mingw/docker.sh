@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-cd /citra
+cd /yuzu
 MINGW_PACKAGES="sdl2-mingw-w64 qt5base-mingw-w64 qt5tools-mingw-w64 libsamplerate-mingw-w64 qt5multimedia-mingw-w64"
 apt-get update
 apt-get install -y gpg wget git python3-pip ccache g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 mingw-w64-tools cmake
@@ -16,7 +16,7 @@ wget -q https://github.com/Alexpux/mingw-w64/raw/d0d7f784833bbb0b2d279310ddc6afb
 echo 'max_size = 3.0G' > "$HOME/.ccache/ccache.conf"
 
 mkdir build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE="$(pwd)/../CMakeModules/MinGWCross.cmake" -DUSE_CCACHE=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_QT_TRANSLATION=ON -DCITRA_ENABLE_COMPATIBILITY_REPORTING=${ENABLE_COMPATIBILITY_REPORTING:-"OFF"} -DENABLE_COMPATIBILITY_LIST_DOWNLOAD=ON
+cmake .. -DCMAKE_TOOLCHAIN_FILE="$(pwd)/../CMakeModules/MinGWCross.cmake" -DUSE_CCACHE=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_QT_TRANSLATION=ON -DYUZU_ENABLE_COMPATIBILITY_REPORTING=${ENABLE_COMPATIBILITY_REPORTING:-"OFF"} -DENABLE_COMPATIBILITY_LIST_DOWNLOAD=ON
 make -j4
 
 echo "Tests skipped"
@@ -29,7 +29,7 @@ cd ..
 mkdir package
 
 QT_PLATFORM_DLL_PATH='/usr/x86_64-w64-mingw32/lib/qt5/plugins/platforms/'
-find build/ -name "citra*.exe" -exec cp {} 'package' \;
+find build/ -name "yuzu*.exe" -exec cp {} 'package' \;
 
 # copy Qt plugins
 mkdir package/platforms

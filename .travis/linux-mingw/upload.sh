@@ -2,7 +2,7 @@
 
 . .travis/common/pre-upload.sh
 
-REV_NAME="citra-windows-mingw-${GITDATE}-${GITREV}"
+REV_NAME="yuzu-windows-mingw-${GITDATE}-${GITREV}"
 ARCHIVE_NAME="${REV_NAME}.tar.gz"
 COMPRESSION_FLAGS="-czvf"
 
