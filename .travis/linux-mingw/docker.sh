@@ -16,7 +16,7 @@ wget -q https://github.com/Alexpux/mingw-w64/raw/d0d7f784833bbb0b2d279310ddc6afb
 echo 'max_size = 3.0G' > "$HOME/.ccache/ccache.conf"
 
 mkdir build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE="$(pwd)/../CMakeModules/MinGWCross.cmake" -DYUZU_USE_BUNDLED_UNICORN=ON -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_TOOLCHAIN_FILE="$(pwd)/../CMakeModules/MinGWCross.cmake" -DYUZU_BUILD_UNICORN=ON -DCMAKE_BUILD_TYPE=Release
 make -j4
 
 echo "Tests skipped"
