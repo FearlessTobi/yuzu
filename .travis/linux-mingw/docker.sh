@@ -3,7 +3,7 @@
 cd /yuzu
 MINGW_PACKAGES="sdl2-mingw-w64 qt5base-mingw-w64 qt5tools-mingw-w64 libsamplerate-mingw-w64 qt5multimedia-mingw-w64"
 apt-get update
-apt-get install -y gpg wget git python3-pip ccache g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 mingw-w64-tools cmake
+apt-get install -y gpg wget git python3-pip python ccache g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 mingw-w64-tools cmake
 # HACK: the repository does not contain necessary packages for 18.04, we'll use packages for 17.10 for now
 echo 'deb http://ppa.launchpad.net/tobydox/mingw-w64/ubuntu artful main ' > /etc/apt/sources.list.d/extras.list
 apt-key adv --keyserver keyserver.ubuntu.com --recv '72931B477E22FEFD47F8DECE02FE5F12ADDE29B2'
