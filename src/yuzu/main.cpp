@@ -55,6 +55,7 @@
 
 #ifdef QT_STATICPLUGIN
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+Q_IMPORT_PLUGIN(qjpeg);
 #endif
 
 #ifdef _WIN32
