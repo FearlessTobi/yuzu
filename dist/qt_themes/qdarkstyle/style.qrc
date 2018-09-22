@@ -1,6 +1,12 @@
 <RCC>
   <qresource prefix="icons/qdarkstyle">
     <file alias="index.theme">icons/index.theme</file>
+    <file alias="256x256/bad_folder.png">icons/256x256/bad_folder.png</file>
+    <file alias="256x256/chip.png">icons/256x256/chip.png</file>
+    <file alias="256x256/folder.png">icons/256x256/folder.png</file>
+    <file alias="256x256/plus.png">icons/256x256/plus.png</file>
+    <file alias="256x256/sd_card.png">icons/256x256/sd_card.png</file>
+    <file alias="256x256/plus_folder.png">icons/256x256/plus_folder.png</file>
   </qresource>
   <qresource prefix="qss_icons">
     <file>rc/up_arrow_disabled.png</file>

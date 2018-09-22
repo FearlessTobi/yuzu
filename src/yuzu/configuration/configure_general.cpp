@@ -26,7 +26,6 @@ ConfigureGeneral::ConfigureGeneral(QWidget* parent)
 ConfigureGeneral::~ConfigureGeneral() = default;
 
 void ConfigureGeneral::setConfiguration() {
-    ui->toggle_deepscan->setChecked(UISettings::values.gamedir_deepscan);
     ui->toggle_check_exit->setChecked(UISettings::values.confirm_before_closing);
     ui->theme_combobox->setCurrentIndex(ui->theme_combobox->findData(UISettings::values.theme));
     ui->use_cpu_jit->setChecked(Settings::values.use_cpu_jit);
@@ -38,7 +37,6 @@ void ConfigureGeneral::PopulateHotkeyList(const HotkeyRegistry& registry) {
 }
 
 void ConfigureGeneral::applyConfiguration() {
-    UISettings::values.gamedir_deepscan = ui->toggle_deepscan->isChecked();
     UISettings::values.confirm_before_closing = ui->toggle_check_exit->isChecked();
     UISettings::values.theme =
         ui->theme_combobox->itemData(ui->theme_combobox->currentIndex()).toString();

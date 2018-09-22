@@ -5,7 +5,19 @@
         <file alias="16x16/checked.png">icons/16x16/checked.png</file>
 
         <file alias="16x16/failed.png">icons/16x16/failed.png</file>
+
+        <file alias="256x256/bad_folder.png">icons/256x256/bad_folder.png</file>
+      
+        <file alias="256x256/chip.png">icons/256x256/chip.png</file>
+
+        <file alias="256x256/folder.png">icons/256x256/folder.png</file>
+
+        <file alias="256x256/plus.png">icons/256x256/plus.png</file>
+      
+        <file alias="256x256/sd_card.png">icons/256x256/sd_card.png</file>
       
         <file alias="256x256/yuzu.png">icons/256x256/yuzu.png</file>
+
+        <file alias="256x256/plus_folder.png">icons/256x256/plus_folder.png</file>
     </qresource>
 </RCC>

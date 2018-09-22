@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>300</width>
-    <height>377</height>
+    <height>504</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,13 +24,6 @@
        <layout class="QHBoxLayout" name="GeneralHorizontalLayout">
         <item>
          <layout class="QVBoxLayout" name="GeneralVerticalLayout">
-          <item>
-           <widget class="QCheckBox" name="toggle_deepscan">
-            <property name="text">
-             <string>Search sub-directories for games</string>
-            </property>
-           </widget>
-          </item>
           <item>
            <widget class="QCheckBox" name="toggle_check_exit">
             <property name="text">

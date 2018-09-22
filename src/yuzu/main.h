@@ -19,6 +19,7 @@
 class Config;
 class EmuThread;
 class GameList;
+class GameListPlaceholder;
 class GImageInfo;
 class GraphicsBreakPointsWidget;
 class GraphicsSurfaceWidget;
@@ -140,11 +141,12 @@ private slots:
     void OnGameListOpenFolder(u64 program_id, GameListOpenTarget target);
     void OnGameListNavigateToGamedbEntry(u64 program_id,
                                          const CompatibilityList& compatibility_list);
+    void OnGameListOpenDirectory(QString path);
+    void OnGameListAddDirectory();
+    void OnGameListShowList(bool show);
     void OnMenuLoadFile();
     void OnMenuLoadFolder();
     void OnMenuInstallToNAND();
-    /// Called whenever a user selects the "File->Select Game List Root" menu item
-    void OnMenuSelectGameListRoot();
     /// Called whenever a user select the "File->Select -- Directory" where -- is NAND or SD Card
     void OnMenuSelectEmulatedDirectory(EmulatedDirectoryTarget target);
     void OnMenuRecentFile();
@@ -167,6 +169,8 @@ private:
 
     GRenderWindow* render_window;
     GameList* game_list;
+
+    GameListPlaceholder* game_list_placeholder;
 
     // Status bar elements
     QLabel* message_label = nullptr;
