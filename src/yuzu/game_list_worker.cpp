@@ -254,7 +254,14 @@ void GameListWorker::run() {
                 std::string(FileUtil::GetUserPath(FileUtil::UserPath::NANDDir).c_str()) +
                     "00000000000000000000000000000000/title/00040010",
                 2, game_list_dir);
-            AddInstalledTitlesToGameList(game_list_dir);
+        } else if (game_dir.path == "HOMEBREW_SD") {
+            QString path =
+                QString(FileUtil::GetUserPath(FileUtil::UserPath::SDMCDir).c_str()) + "switch";
+            watch_list.append(path);
+            GameListDir* game_list_dir = new GameListDir(game_dir, GameListItemType::InstalledDir);
+            emit DirEntryReady({game_list_dir});
+            FillControlMap(path.toStdString());
+            AddFstEntriesToGameList(path.toStdString(), 2, game_list_dir);
         } else {
             watch_list.append(game_dir.path);
             GameListDir* game_list_dir = new GameListDir(game_dir);
@@ -262,7 +269,6 @@ void GameListWorker::run() {
             FillControlMap(game_dir.path.toStdString());
             AddFstEntriesToGameList(game_dir.path.toStdString(), game_dir.deep_scan ? 256 : 0,
                                     game_list_dir);
-            AddInstalledTitlesToGameList(game_list_dir);
         }
     };
     nca_control_map.clear();
