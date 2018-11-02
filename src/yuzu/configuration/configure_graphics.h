@@ -20,8 +20,6 @@ public:
 
     void applyConfiguration();
     void retranslateUi();
-
-private:
     void setConfiguration();
 
     std::unique_ptr<Ui::ConfigureGraphics> ui;

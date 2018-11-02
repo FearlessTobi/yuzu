@@ -23,8 +23,6 @@ add_executable(yuzu
     configuration/configure_debug.h
     configuration/configure_dialog.cpp
     configuration/configure_dialog.h
-    configuration/configure_gamelist.cpp
-    configuration/configure_gamelist.h
     configuration/configure_general.cpp
     configuration/configure_general.h
     configuration/configure_graphics.cpp
@@ -43,6 +41,8 @@ add_executable(yuzu
     configuration/configure_per_general.h
     configuration/configure_touchscreen_advanced.cpp
     configuration/configure_touchscreen_advanced.h
+    configuration/configure_ui.cpp
+    configuration/configure_ui.h
     configuration/configure_web.cpp
     configuration/configure_web.h
     debugger/graphics/graphics_breakpoint_observer.cpp
@@ -86,7 +86,6 @@ set(UIS
     configuration/configure.ui
     configuration/configure_audio.ui
     configuration/configure_debug.ui
-    configuration/configure_gamelist.ui
     configuration/configure_general.ui
     configuration/configure_graphics.ui
     configuration/configure_input.ui
@@ -96,6 +95,7 @@ set(UIS
     configuration/configure_per_general.ui
     configuration/configure_system.ui
     configuration/configure_touchscreen_advanced.ui
+    configuration/configure_ui.ui
     configuration/configure_web.ui
     hotkeys.ui
     main.ui

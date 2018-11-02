@@ -32,6 +32,7 @@ private:
     void setConfiguration();
     void UpdateVisibleTabs();
     void PopulateSelectionList();
+    void retranslateUi();
 
     std::unique_ptr<Ui::ConfigureDialog> ui;
 };
