@@ -22,6 +22,13 @@ public:
 
     void PopulateHotkeyList(const HotkeyRegistry& registry);
     void applyConfiguration();
+    void retranslateUi();
+
+private slots:
+    void onLanguageChanged(int index);
+
+signals:
+    void languageChanged(const QString& locale);
 
 private:
     void setConfiguration();

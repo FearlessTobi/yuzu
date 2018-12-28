@@ -31,6 +31,7 @@ public:
 
     /// Save all button configurations to settings file
     void applyConfiguration();
+    void retranslateUi();
 
 private:
     void updateUIEnabled();

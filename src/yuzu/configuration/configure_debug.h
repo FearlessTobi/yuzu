@@ -19,6 +19,7 @@ public:
     ~ConfigureDebug() override;
 
     void applyConfiguration();
+    void retranslateUi();
 
 private:
     void setConfiguration();

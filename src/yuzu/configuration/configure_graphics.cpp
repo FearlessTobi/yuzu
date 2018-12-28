@@ -92,3 +92,7 @@ void ConfigureGraphics::applyConfiguration() {
     Settings::values.bg_green = static_cast<float>(bg_color.greenF());
     Settings::values.bg_blue = static_cast<float>(bg_color.blueF());
 }
+
+void ConfigureGraphics::retranslateUi() {
+    ui->retranslateUi(this);
+}

@@ -19,6 +19,7 @@ public:
     ~ConfigureGameList() override;
 
     void applyConfiguration();
+    void retranslateUi();
 
 private:
     void RequestGameListUpdate();

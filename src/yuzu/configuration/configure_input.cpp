@@ -206,3 +206,7 @@ void ConfigureInput::restoreDefaults() {
     ui->touchscreen_enabled->setCheckState(Qt::Checked);
     updateUIEnabled();
 }
+
+void ConfigureInput::retranslateUi() {
+    ui->retranslateUi(this);
+}

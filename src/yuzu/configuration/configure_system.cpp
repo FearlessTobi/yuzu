@@ -383,3 +383,7 @@ void ConfigureSystem::SetUserImage() {
                         new QStandardItem{GetIcon(*uuid), FormatUserEntryText(username, *uuid)});
     UpdateCurrentUser();
 }
+
+void ConfigureSystem::retranslateUi() {
+    ui->retranslateUi(this);
+}

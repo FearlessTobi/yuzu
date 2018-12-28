@@ -157,6 +157,8 @@ GMainWindow::GMainWindow()
       vfs(std::make_shared<FileSys::RealVfsFilesystem>()) {
     InitializeLogging();
 
+    LoadTranslation();
+
     debug_context = Tegra::DebugContext::Construct();
 
     setAcceptDrops(true);
@@ -182,8 +184,8 @@ GMainWindow::GMainWindow()
     LOG_INFO(Frontend, "yuzu Version: {} | {}-{}", Common::g_build_fullname, Common::g_scm_branch,
              Common::g_scm_desc);
 
-    setWindowTitle(QString("yuzu %1| %2-%3")
-                       .arg(Common::g_build_fullname, Common::g_scm_branch, Common::g_scm_desc));
+    SetupUIStrings();
+
     show();
 
     // Gen keys if necessary
@@ -1430,6 +1432,8 @@ void GMainWindow::ToggleWindowMode() {
 
 void GMainWindow::OnConfigure() {
     ConfigureDialog configureDialog(this, hotkey_registry);
+    connect(&configureDialog, &ConfigureDialog::languageChanged, this,
+            &GMainWindow::OnLanguageChanged);
     auto old_theme = UISettings::values.theme;
     const bool old_discord_presence = UISettings::values.enable_discord_presence;
     auto result = configureDialog.exec();
@@ -1836,6 +1840,45 @@ void GMainWindow::UpdateUITheme() {
     }
     QIcon::setThemeSearchPaths(theme_paths);
     emit UpdateThemedIcons();
+}
+
+void GMainWindow::LoadTranslation() {
+    // If the selected language is English, no need to install any translation
+    if (UISettings::values.language == "en") {
+        return;
+    }
+
+    bool loaded;
+
+    if (UISettings::values.language.isEmpty()) {
+        // If the selected language is empty, use system locale
+        loaded = translator.load(QLocale(), "", "", ":/languages/");
+    } else {
+        // Otherwise load from the specified file
+        loaded = translator.load(UISettings::values.language, ":/languages/");
+    }
+
+    if (loaded) {
+        qApp->installTranslator(&translator);
+    } else {
+        UISettings::values.language = "en";
+    }
+}
+
+void GMainWindow::OnLanguageChanged(const QString& locale) {
+    if (UISettings::values.language != "en") {
+        qApp->removeTranslator(&translator);
+    }
+
+    UISettings::values.language = locale;
+    LoadTranslation();
+    ui.retranslateUi(this);
+    SetupUIStrings();
+}
+
+void GMainWindow::SetupUIStrings() {
+    setWindowTitle(
+        tr("yuzu %1| %2-%3").arg(Common::g_build_name, Common::g_scm_branch, Common::g_scm_desc));
 }
 
 void GMainWindow::SetDiscordEnabled([[maybe_unused]] bool state) {

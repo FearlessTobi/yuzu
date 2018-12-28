@@ -32,6 +32,7 @@ public:
 
     void applyConfiguration();
     void setConfiguration();
+    void retranslateUi();
 
 private:
     void ReadSystemSettings();

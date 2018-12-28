@@ -19,6 +19,7 @@ public:
     ~ConfigureGraphics() override;
 
     void applyConfiguration();
+    void retranslateUi();
 
 private:
     void setConfiguration();
