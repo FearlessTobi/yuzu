@@ -14,7 +14,6 @@ ConfigureDialog::ConfigureDialog(QWidget* parent, const HotkeyRegistry& registry
     : QDialog(parent), ui(new Ui::ConfigureDialog) {
     ui->setupUi(this);
     ui->generalTab->PopulateHotkeyList(registry);
-    this->setConfiguration();
     this->PopulateSelectionList();
     connect(ui->uiTab, &ConfigureUi::languageChanged, this, &ConfigureDialog::onLanguageChanged);
     connect(ui->selectorList, &QListWidget::itemSelectionChanged, this,
@@ -51,11 +50,14 @@ void ConfigureDialog::applyConfiguration() {
 }
 
 void ConfigureDialog::PopulateSelectionList() {
+    ui->selectorList->clear();
+
     const std::array<std::pair<QString, QStringList>, 4> items{
-        {{tr("General"), {tr("General"), tr("Web"), tr("Debug"), tr("Game List")}},
-         {tr("System"), {tr("System"), tr("Audio")}},
-         {tr("Graphics"), {tr("Graphics")}},
-         {tr("Controls"), {tr("Input")}}}};
+        {{tr("General"),
+          {QT_TR_NOOP("General"), QT_TR_NOOP("Web"), QT_TR_NOOP("Debug"), QT_TR_NOOP("UI")}},
+         {QT_TR_NOOP("System"), {QT_TR_NOOP("System"), QT_TR_NOOP("Audio")}},
+         {QT_TR_NOOP("Graphics"), {QT_TR_NOOP("Graphics")}},
+         {QT_TR_NOOP("Controls"), {QT_TR_NOOP("Input")}}}};
 
     for (const auto& entry : items) {
         auto* const item = new QListWidgetItem(entry.first);
@@ -71,17 +73,16 @@ void ConfigureDialog::UpdateVisibleTabs() {
         return;
 
     const std::map<QString, QWidget*> widgets = {
-        {tr("General"), ui->generalTab}, {tr("System"), ui->systemTab},
-        {tr("Input"), ui->inputTab},     {tr("Graphics"), ui->graphicsTab},
-        {tr("Audio"), ui->audioTab},     {tr("Debug"), ui->debugTab},
-        {tr("Web"), ui->webTab},         {tr("Game List"), ui->gameListTab}};
+        {"General", ui->generalTab},   {"System", ui->systemTab}, {"Input", ui->inputTab},
+        {"Graphics", ui->graphicsTab}, {"Audio", ui->audioTab},   {"Debug", ui->debugTab},
+        {"Web", ui->webTab},           {"UI", ui->uiTab}};
 
     ui->tabWidget->clear();
 
     const QStringList tabs = items[0]->data(Qt::UserRole).toStringList();
 
     for (const auto& tab : tabs)
-        ui->tabWidget->addTab(widgets.find(tab)->second, tab);
+        ui->tabWidget->addTab(widgets.find(tab)->second, tr(qPrintable(tab)));
 }
 
 void ConfigureDialog::onLanguageChanged(const QString& locale) {
@@ -93,9 +94,12 @@ void ConfigureDialog::onLanguageChanged(const QString& locale) {
 }
 
 void ConfigureDialog::retranslateUi() {
+    int old_row = ui->selectorList->currentRow();
     int old_index = ui->tabWidget->currentIndex();
     ui->retranslateUi(this);
+    PopulateSelectionList();
     // restore selection after repopulating
+    ui->selectorList->setCurrentRow(old_row);
     ui->tabWidget->setCurrentIndex(old_index);
 
     ui->generalTab->retranslateUi();
