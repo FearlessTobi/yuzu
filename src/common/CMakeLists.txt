@@ -79,6 +79,8 @@ add_library(common STATIC
     common_funcs.h
     common_paths.h
     common_types.h
+    crash_handler.cpp
+    crash_handler.h
     file_util.cpp
     file_util.h
     hash.h
@@ -123,6 +125,7 @@ add_library(common STATIC
     timer.h
     uint128.cpp
     uint128.h
+    ui_util.h
     vector_math.h
     web_result.h
     zstd_compression.cpp
@@ -134,6 +137,23 @@ if(ARCHITECTURE_x86_64)
         PRIVATE
             x64/cpu_detect.cpp
             x64/cpu_detect.h
+    )
+endif()
+
+if (WIN32)
+    target_sources(common
+        PRIVATE
+            ui_util_windows.cpp
+    )
+elseif (APPLE)
+    target_sources(common
+        PRIVATE
+            ui_util_macos.mm
+    )
+else()
+    target_sources(common
+        PRIVATE
+            ui_util_linux.cpp
     )
 endif()
 

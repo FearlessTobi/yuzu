@@ -51,6 +51,8 @@ add_executable(yuzu
     configuration/configure_touchscreen_advanced.h
     configuration/configure_web.cpp
     configuration/configure_web.h
+    crash_dialog/crash_dialog.cpp
+    crash_dialog/crash_dialog.h
     debugger/graphics/graphics_breakpoint_observer.cpp
     debugger/graphics/graphics_breakpoint_observer.h
     debugger/graphics/graphics_breakpoints.cpp
@@ -107,6 +109,7 @@ set(UIS
     configuration/configure_system.ui
     configuration/configure_touchscreen_advanced.ui
     configuration/configure_web.ui
+    crash_dialog/crash_dialog.ui
     compatdb.ui
     loading_screen.ui
     main.ui

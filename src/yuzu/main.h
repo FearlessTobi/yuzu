@@ -18,6 +18,10 @@
 #include "yuzu/compatibility_list.h"
 #include "yuzu/hotkeys.h"
 
+namespace Common {
+struct CrashInformation;
+}
+
 class Config;
 class EmuThread;
 class GameList;
@@ -201,6 +205,7 @@ private slots:
     void HideFullscreen();
     void ToggleWindowMode();
     void OnCaptureScreenshot();
+    void OnCrashed(const Common::CrashInformation&);
     void OnCoreError(Core::System::ResultStatus, std::string);
     void OnReinitializeKeys(ReinitializeKeyBehavior behavior);
 

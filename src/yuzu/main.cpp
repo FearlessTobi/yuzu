@@ -4,6 +4,7 @@
 
 #include <cinttypes>
 #include <clocale>
+#include <cstdlib>
 #include <memory>
 #include <thread>
 
@@ -53,6 +54,7 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 
 #include <fmt/format.h>
 #include "common/common_paths.h"
+#include "common/crash_handler.h"
 #include "common/detached_tasks.h"
 #include "common/file_util.h"
 #include "common/logging/backend.h"
@@ -88,6 +90,7 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 #include "yuzu/compatibility_list.h"
 #include "yuzu/configuration/config.h"
 #include "yuzu/configuration/configure_dialog.h"
+#include "yuzu/crash_dialog/crash_dialog.h"
 #include "yuzu/debugger/console.h"
 #include "yuzu/debugger/graphics/graphics_breakpoints.h"
 #include "yuzu/debugger/profiler.h"
@@ -898,9 +901,9 @@ void GMainWindow::BootGame(const QString& filename) {
     emu_thread = std::make_unique<EmuThread>(render_window);
     emit EmulationStarting(emu_thread.get());
     render_window->moveContext();
-    emu_thread->start();
 
     connect(render_window, &GRenderWindow::Closed, this, &GMainWindow::OnStopGame);
+    connect(emu_thread.get(), &EmuThread::Crashed, this, &GMainWindow::OnCrashed);
     // BlockingQueuedConnection is important here, it makes sure we've finished refreshing our views
     // before the CPU continues
     connect(emu_thread.get(), &EmuThread::DebugModeEntered, waitTreeWidget,
@@ -910,6 +913,8 @@ void GMainWindow::BootGame(const QString& filename) {
 
     connect(emu_thread.get(), &EmuThread::LoadProgress, loading_screen,
             &LoadingScreen::OnLoadProgress, Qt::QueuedConnection);
+
+    emu_thread->start();
 
     // Update the GUI
     if (ui.action_Single_Window_Mode->isChecked()) {
@@ -1777,6 +1782,12 @@ void GMainWindow::UpdateStatusBar() {
     emu_speed_label->setVisible(true);
     game_fps_label->setVisible(true);
     emu_frametime_label->setVisible(true);
+}
+
+void GMainWindow::OnCrashed(const Common::CrashInformation& crash_info) {
+    CrashDialog crashDialog(this, crash_info);
+    crashDialog.exec();
+    QCoreApplication::exit(EXIT_FAILURE);
 }
 
 void GMainWindow::OnCoreError(Core::System::ResultStatus result, std::string details) {

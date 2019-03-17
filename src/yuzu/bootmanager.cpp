@@ -3,6 +3,8 @@
 // Refer to the license.txt file included.
 
 #include <QApplication>
+#include <QDateTime>
+#include <QDir>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QOffscreenSurface>
@@ -11,6 +13,8 @@
 #include <QScreen>
 #include <QWindow>
 #include <fmt/format.h>
+#include "common/crash_handler.h"
+#include "common/file_util.h"
 #include "common/microprofile.h"
 #include "common/scm_rev.h"
 #include "core/core.h"
@@ -24,7 +28,16 @@
 #include "yuzu/bootmanager.h"
 #include "yuzu/main.h"
 
-EmuThread::EmuThread(GRenderWindow* render_window) : render_window(render_window) {}
+static std::string GenerateMinidumpFilename() {
+    QString dir = QString::fromStdString(FileUtil::GetUserPath(FileUtil::UserPath::LogDir));
+    QString file = QDateTime::currentDateTime().toString("'minidump-citra-'yyyyMMdd-HHmmss'.dmp'");
+    return QDir::toNativeSeparators(dir + "/" + file).toStdString();
+}
+
+EmuThread::EmuThread(GRenderWindow* render_window) : render_window(render_window) {
+    // Custom types must be registered to be used with Qt signals/slots.
+    qRegisterMetaType<Common::CrashInformation>("Common::CrashInformation");
+}
 
 void EmuThread::run() {
     render_window->MakeCurrent();
@@ -45,39 +58,44 @@ void EmuThread::run() {
         render_window->DoneCurrent();
     }
 
-    // Holds whether the cpu was running during the last iteration,
-    // so that the DebugModeLeft signal can be emitted before the
-    // next execution step
-    bool was_active = false;
-    while (!stop_run) {
-        if (running) {
-            if (!was_active)
-                emit DebugModeLeft();
+    Common::CrashHandler(
+        [&]() {
+            // holds whether the cpu was running during the last iteration,
+            // so that the DebugModeLeft signal can be emitted before the
+            // next execution step
+            bool was_active = false;
+            while (!stop_run) {
+                if (running) {
+                    if (!was_active)
+                        emit DebugModeLeft();
 
-            Core::System::ResultStatus result = Core::System::GetInstance().RunLoop();
-            if (result != Core::System::ResultStatus::Success) {
-                this->SetRunning(false);
-                emit ErrorThrown(result, Core::System::GetInstance().GetStatusDetails());
+                    Core::System::ResultStatus result = Core::System::GetInstance().RunLoop();
+                    if (result != Core::System::ResultStatus::Success) {
+                        this->SetRunning(false);
+                        emit ErrorThrown(result, Core::System::GetInstance().GetStatusDetails());
+                    }
+
+                    was_active = running || exec_step;
+                    if (!was_active && !stop_run)
+                        emit DebugModeEntered();
+                } else if (exec_step) {
+                    if (!was_active)
+                        emit DebugModeLeft();
+
+                    exec_step = false;
+                    Core::System::GetInstance().SingleStep();
+                    emit DebugModeEntered();
+                    yieldCurrentThread();
+
+                    was_active = false;
+                } else {
+                    std::unique_lock lock{running_mutex};
+                    running_cv.wait(lock, [this] { return IsRunning() || exec_step || stop_run; });
+                }
             }
-
-            was_active = running || exec_step;
-            if (!was_active && !stop_run)
-                emit DebugModeEntered();
-        } else if (exec_step) {
-            if (!was_active)
-                emit DebugModeLeft();
-
-            exec_step = false;
-            Core::System::GetInstance().SingleStep();
-            emit DebugModeEntered();
-            yieldCurrentThread();
-
-            was_active = false;
-        } else {
-            std::unique_lock lock{running_mutex};
-            running_cv.wait(lock, [this] { return IsRunning() || exec_step || stop_run; });
-        }
-    }
+        },
+        [&](const Common::CrashInformation& crash_info) { emit Crashed(crash_info); },
+        GenerateMinidumpFilename());
 
     // Shutdown the core emulation
     Core::System::GetInstance().Shutdown();
