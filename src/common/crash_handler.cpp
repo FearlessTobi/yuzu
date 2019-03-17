@@ -148,7 +148,7 @@ static void GetStackTrace(CONTEXT& ctx) {
         // Format string
         return fmt::format("[{:08X}] {}+0x{:08X} ({}:{})", return_address, undecorated_name,
                            symbol_displacement, file_name.c_str(), line.LineNumber);
-    }
+    };
 
     // NOTE: SymFunctionTableAccess64 doesn't work with the non-standard stack frames our JIT
     // produces. Thus we elect to not use StackWalk64, but instead manually use the Rtl* functions.
