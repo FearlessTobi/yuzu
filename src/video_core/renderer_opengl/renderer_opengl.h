@@ -58,6 +58,12 @@ public:
     /// Shutdown the renderer
     void ShutDown() override;
 
+    /// Prepares for video dumping (e.g. create necessary buffers, etc)
+    void PrepareVideoDumping() override;
+
+    /// Cleans up after video dumping is ended
+    void CleanupVideoDumping() override;
+
 private:
     void InitOpenGLObjects();
     void AddTelemetryFields();
@@ -76,6 +82,9 @@ private:
     // Fills active OpenGL texture with the given RGBA color.
     void LoadColorToActiveGLTexture(u8 color_r, u8 color_g, u8 color_b, u8 color_a,
                                     const TextureInfo& texture);
+
+    void InitVideoDumpingGLObjects();
+    void ReleaseVideoDumpingGLObjects();
 
     Core::Frontend::EmuWindow& emu_window;
     Core::System& system;
@@ -105,6 +114,20 @@ private:
     /// Used for transforming the framebuffer orientation
     Tegra::FramebufferConfig::TransformFlags framebuffer_transform_flags;
     Common::Rectangle<int> framebuffer_crop_rect;
+
+    // Frame dumping
+    OGLFramebuffer frame_dumping_framebuffer;
+    GLuint frame_dumping_renderbuffer;
+
+    // Whether prepare/cleanup video dumping has been requested.
+    // They will be executed on next frame.
+    std::atomic_bool prepare_video_dumping = false;
+    std::atomic_bool cleanup_video_dumping = false;
+
+    // PBOs used to dump frames faster
+    std::array<OGLBuffer, 2> frame_dumping_pbos;
+    GLuint current_pbo = 1;
+    GLuint next_pbo = 0;
 };
 
 } // namespace OpenGL

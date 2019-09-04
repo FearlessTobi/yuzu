@@ -10,6 +10,8 @@
 #include "audio_core/time_stretch.h"
 #include "common/logging/log.h"
 #include "common/ring_buffer.h"
+#include "core/core.h"
+#include "core/dumping/backend.h"
 #include "core/settings.h"
 
 #ifdef _WIN32
@@ -73,10 +75,18 @@ public:
                 }
             }
             queue.Push(buf);
+
+            if (Core::System::GetInstance().VideoDumper().IsDumping()) {
+                Core::System::GetInstance().VideoDumper().AddAudioSamples(buf);
+            }
             return;
         }
 
         queue.Push(samples);
+
+        if (Core::System::GetInstance().VideoDumper().IsDumping()) {
+            Core::System::GetInstance().VideoDumper().AddAudioSamples(samples);
+        }
     }
 
     std::size_t SamplesInQueue(u32 channel_count) const override {

@@ -22,13 +22,16 @@
 #include "common/telemetry.h"
 #include "core/core.h"
 #include "core/crypto/key_manager.h"
+#include "core/dumping/backend.h"
 #include "core/file_sys/vfs_real.h"
+#include "core/frontend/framebuffer_layout.h"
 #include "core/gdbstub/gdbstub.h"
 #include "core/hle/service/filesystem/filesystem.h"
 #include "core/loader/loader.h"
 #include "core/settings.h"
 #include "core/telemetry_session.h"
 #include "video_core/renderer_base.h"
+#include "video_core/video_core.h"
 #include "yuzu_cmd/config.h"
 #include "yuzu_cmd/emu_window/emu_window_sdl2.h"
 #include "yuzu_cmd/emu_window/emu_window_sdl2_gl.h"
@@ -62,6 +65,7 @@ static void PrintHelp(const char* argv0) {
               << " [options] <filename>\n"
                  "-g, --gdbport=NUMBER  Enable gdb stub on port NUMBER\n"
                  "-f, --fullscreen      Start in fullscreen mode\n"
+                 "-d, --dump-video=[file]    Dumps audio and video to the given video file\n"
                  "-h, --help            Display this help and exit\n"
                  "-v, --version         Output version information and exit\n"
                  "-p, --program         Pass following string as arguments to executable\n";
@@ -94,6 +98,7 @@ int main(int argc, char** argv) {
     int option_index = 0;
     bool use_gdbstub = Settings::values.use_gdbstub;
     u32 gdb_port = static_cast<u32>(Settings::values.gdbstub_port);
+    std::string dump_video;
 
     InitializeLogging();
 
@@ -112,9 +117,13 @@ int main(int argc, char** argv) {
     bool fullscreen = false;
 
     static struct option long_options[] = {
-        {"gdbport", required_argument, 0, 'g'}, {"fullscreen", no_argument, 0, 'f'},
-        {"help", no_argument, 0, 'h'},          {"version", no_argument, 0, 'v'},
-        {"program", optional_argument, 0, 'p'}, {0, 0, 0, 0},
+        {"gdbport", required_argument, 0, 'g'},
+        {"dump-video", required_argument, 0, 'd'},
+        {"fullscreen", no_argument, 0, 'f'},
+        {"help", no_argument, 0, 'h'},
+        {"version", no_argument, 0, 'v'},
+        {"program", optional_argument, 0, 'p'},
+        {0, 0, 0, 0},
     };
 
     while (optind < argc) {
@@ -131,6 +140,9 @@ int main(int argc, char** argv) {
                     perror("--gdbport");
                     exit(1);
                 }
+                break;
+            case 'd':
+                dump_video = optarg;
                 break;
             case 'f':
                 fullscreen = true;
@@ -223,8 +235,18 @@ int main(int argc, char** argv) {
     emu_window->MakeCurrent();
     system.Renderer().Rasterizer().LoadDiskResources();
 
+    if (!dump_video.empty()) {
+        Layout::FramebufferLayout layout{
+            Layout::FrameLayoutFromResolutionScale(VideoCore::GetResolutionScaleFactor())};
+        system.VideoDumper().StartDumping(dump_video, "webm", layout);
+    }
+
     while (emu_window->IsOpen()) {
         system.RunLoop();
+    }
+
+    if (system.VideoDumper().IsDumping()) {
+        system.VideoDumper().StopDumping();
     }
 
     detached_tasks.WaitForAllTasks();

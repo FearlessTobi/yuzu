@@ -81,6 +81,10 @@ namespace Core::Hardware {
 class InterruptManager;
 }
 
+namespace VideoDumper {
+class Backend;
+}
+
 namespace Core {
 
 class ARM_Interface;
@@ -256,6 +260,12 @@ public:
 
     /// Provides a constant reference to the kernel instance.
     const Kernel::KernelCore& Kernel() const;
+
+    /// Gets a reference to the video dumper backend
+    VideoDumper::Backend& VideoDumper();
+
+    /// Gets a const reference to the video dumper backend
+    const VideoDumper::Backend& VideoDumper() const;
 
     /// Provides a reference to the internal PerfStats instance.
     Core::PerfStats& GetPerfStats();

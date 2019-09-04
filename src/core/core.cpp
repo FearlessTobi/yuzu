@@ -14,6 +14,7 @@
 #include "core/core_cpu.h"
 #include "core/core_timing.h"
 #include "core/cpu_core_manager.h"
+#include "core/dumping/backend.h"
 #include "core/file_sys/bis_factory.h"
 #include "core/file_sys/card_image.h"
 #include "core/file_sys/mode.h"
@@ -32,6 +33,9 @@
 #include "core/hle/kernel/scheduler.h"
 #include "core/hle/kernel/thread.h"
 #include "core/hle/service/am/applets/applets.h"
+#ifdef ENABLE_FFMPEG
+#include "core/dumping/ffmpeg_backend.h"
+#endif
 #include "core/hle/service/apm/controller.h"
 #include "core/hle/service/filesystem/filesystem.h"
 #include "core/hle/service/glue/manager.h"
@@ -165,6 +169,12 @@ struct System::Impl {
         is_powered_on = true;
         exit_lock = false;
 
+#ifdef ENABLE_FFMPEG
+        video_dumper = std::make_unique<VideoDumper::FFmpegBackend>();
+#else
+        video_dumper = std::make_unique<VideoDumper::NullBackend>();
+#endif
+
         LOG_DEBUG(Core, "Initialized OK");
 
         return ResultStatus::Success;
@@ -275,6 +285,10 @@ struct System::Impl {
         // Clear all applets
         applet_manager.ClearAll();
 
+        if (video_dumper->IsDumping()) {
+            video_dumper->StopDumping();
+        }
+
         LOG_DEBUG(Core, "Shutdown OK");
     }
 
@@ -361,6 +375,10 @@ struct System::Impl {
     std::string status_details = "";
 
     std::unique_ptr<Core::PerfStats> perf_stats;
+
+    /// Video dumper backend
+    std::unique_ptr<VideoDumper::Backend> video_dumper;
+
     Core::FrameLimiter frame_limiter;
 };
 
@@ -510,6 +528,14 @@ Timing::CoreTiming& System::CoreTiming() {
 
 const Timing::CoreTiming& System::CoreTiming() const {
     return impl->core_timing;
+}
+
+VideoDumper::Backend& System::VideoDumper() {
+    return *impl->video_dumper;
+}
+
+const VideoDumper::Backend& System::VideoDumper() const {
+    return *impl->video_dumper;
 }
 
 Core::PerfStats& System::GetPerfStats() {

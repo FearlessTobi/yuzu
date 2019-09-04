@@ -23,6 +23,9 @@ option(YUZU_USE_QT_WEB_ENGINE "Use QtWebEngine for web applet implementation" OF
 
 option(ENABLE_CUBEB "Enables the cubeb audio backend" ON)
 
+option(ENABLE_FFMPEG "Enable FFmpeg decoder/encoder" OFF)
+CMAKE_DEPENDENT_OPTION(YUZU_USE_BUNDLED_FFMPEG "Download bundled FFmpeg binaries" ON "ENABLE_FFMPEG;MSVC" OFF)
+
 option(ENABLE_VULKAN "Enables Vulkan backend" ON)
 
 option(USE_DISCORD_PRESENCE "Enables Discord Rich Presence" OFF)
@@ -255,6 +258,28 @@ if (ENABLE_QT)
     if (YUZU_USE_QT_WEB_ENGINE)
         find_package(Qt5 REQUIRED COMPONENTS WebEngineCore WebEngineWidgets ${QT_PREFIX_HINT})
     endif ()
+endif()
+
+if (ENABLE_FFMPEG)
+    if (YUZU_USE_BUNDLED_FFMPEG)
+        if ((MSVC_VERSION GREATER_EQUAL 1910 AND MSVC_VERSION LESS 1930) AND ARCHITECTURE_x86_64)
+            set(FFmpeg_VER "ffmpeg-4.1-win64")
+        else()
+            message(FATAL_ERROR "No bundled FFmpeg binaries for your toolchain. Disable YUZU_USE_BUNDLED_FFMPEG and provide your own.")
+        endif()
+
+        if (DEFINED FFmpeg_VER)
+            download_bundled_external("ffmpeg/" ${FFmpeg_VER} FFmpeg_PREFIX)
+            set(FFMPEG_DIR "${FFmpeg_PREFIX}")
+        endif()
+    endif()
+
+    find_package(FFmpeg REQUIRED COMPONENTS avcodec avformat avutil swscale swresample)
+    if ("${FFmpeg_avcodec_VERSION}" VERSION_LESS "57.48.101")
+        message(FATAL_ERROR "Found version for libavcodec is too low. The required version is at least 57.48.101 (included in FFmpeg 3.1 and later).")
+    endif()
+
+    add_definitions(-DENABLE_FFMPEG)
 endif()
 
 # Platform-specific library requirements

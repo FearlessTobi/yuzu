@@ -95,6 +95,12 @@ protected:
     RendererSettings renderer_settings;
 
 private:
+    /// Prepares for video dumping (e.g. create necessary buffers, etc)
+    virtual void PrepareVideoDumping() = 0;
+
+    /// Cleans up after video dumping is ended
+    virtual void CleanupVideoDumping() = 0;
+
     /// Updates the framebuffer layout of the contained render window handle.
     void UpdateCurrentFramebufferLayout();
 };

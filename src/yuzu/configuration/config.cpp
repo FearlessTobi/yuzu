@@ -563,6 +563,8 @@ void Config::ReadPathValues() {
     UISettings::values.roms_path = ReadSetting(QStringLiteral("romsPath")).toString();
     UISettings::values.symbols_path = ReadSetting(QStringLiteral("symbolsPath")).toString();
     UISettings::values.screenshot_path = ReadSetting(QStringLiteral("screenshotPath")).toString();
+    UISettings::values.video_dumping_path =
+        ReadSetting(QStringLiteral("videoDumpingPath")).toString();
     UISettings::values.game_dir_deprecated =
         ReadSetting(QStringLiteral("gameListRootDir"), QStringLiteral(".")).toString();
     UISettings::values.game_dir_deprecated_deepscan =
@@ -999,6 +1001,7 @@ void Config::SavePathValues() {
     WriteSetting(QStringLiteral("romsPath"), UISettings::values.roms_path);
     WriteSetting(QStringLiteral("symbolsPath"), UISettings::values.symbols_path);
     WriteSetting(QStringLiteral("screenshotPath"), UISettings::values.screenshot_path);
+    WriteSetting(QStringLiteral("videoDumpingPath"), UISettings::values.video_dumping_path);
     qt_config->beginWriteArray(QStringLiteral("gamedirs"));
     for (int i = 0; i < UISettings::values.game_dirs.size(); ++i) {
         qt_config->setArrayIndex(i);

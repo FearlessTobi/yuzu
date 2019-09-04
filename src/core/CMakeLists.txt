@@ -29,6 +29,8 @@ add_library(core STATIC
     crypto/ctr_encryption_layer.h
     crypto/xts_encryption_layer.cpp
     crypto/xts_encryption_layer.h
+    dumping/backend.cpp
+    dumping/backend.h
     file_sys/bis_factory.cpp
     file_sys/bis_factory.h
     file_sys/card_image.cpp
@@ -495,6 +497,13 @@ add_library(core STATIC
     tools/freezer.h
 )
 
+if (ENABLE_FFMPEG)
+    target_sources(core PRIVATE
+        dumping/ffmpeg_backend.cpp
+        dumping/ffmpeg_backend.h
+    )
+endif()
+
 create_target_directory_groups(core)
 
 target_link_libraries(core PUBLIC common PRIVATE audio_core video_core)
@@ -510,4 +519,8 @@ if (ARCHITECTURE_x86_64)
         arm/dynarmic/arm_dynarmic.h
     )
     target_link_libraries(core PRIVATE dynarmic)
+endif()
+
+if (ENABLE_FFMPEG)
+    target_link_libraries(core PRIVATE FFmpeg::avcodec FFmpeg::avformat FFmpeg::swscale FFmpeg::swresample FFmpeg::avutil)
 endif()

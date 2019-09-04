@@ -75,6 +75,7 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 #include "common/telemetry.h"
 #include "core/core.h"
 #include "core/crypto/key_manager.h"
+#include "core/dumping/backend.h"
 #include "core/file_sys/card_image.h"
 #include "core/file_sys/content_archive.h"
 #include "core/file_sys/control_metadata.h"
@@ -94,6 +95,8 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 #include "core/settings.h"
 #include "core/telemetry_session.h"
 #include "video_core/debug_utils/debug_utils.h"
+#include "video_core/renderer_base.h"
+#include "video_core/video_core.h"
 #include "yuzu/about_dialog.h"
 #include "yuzu/bootmanager.h"
 #include "yuzu/compatdb.h"
@@ -742,6 +745,17 @@ void GMainWindow::ConnectMenuEvents() {
     connect(ui.action_Capture_Screenshot, &QAction::triggered, this,
             &GMainWindow::OnCaptureScreenshot);
 
+#ifndef ENABLE_FFMPEG
+    ui.action_Dump_Video->setEnabled(false);
+#endif
+    connect(ui.action_Dump_Video, &QAction::triggered, [this] {
+        if (ui.action_Dump_Video->isChecked()) {
+            OnStartVideoDumping();
+        } else {
+            OnStopVideoDumping();
+        }
+    });
+
     // Help
     connect(ui.action_Open_yuzu_Folder, &QAction::triggered, this, &GMainWindow::OnOpenYuzuFolder);
     connect(ui.action_Rederive, &QAction::triggered, this,
@@ -997,11 +1011,26 @@ void GMainWindow::BootGame(const QString& filename) {
     if (ui.action_Fullscreen->isChecked()) {
         ShowFullscreen();
     }
+
+    if (video_dumping_on_start) {
+        Layout::FramebufferLayout layout{Layout::FrameLayoutFromResolutionScale(
+            VideoCore::GetResolutionScaleFactor(Core::System::GetInstance().Renderer()))};
+        Core::System::GetInstance().VideoDumper().StartDumping(video_dumping_path.toStdString(),
+                                                               "webm", layout);
+        video_dumping_on_start = false;
+        video_dumping_path.clear();
+    }
     OnStartGame();
 }
 
 void GMainWindow::ShutdownGame() {
     AllowOSSleep();
+
+    if (Core::System::GetInstance().VideoDumper().IsDumping()) {
+        game_shutdown_delayed = true;
+        OnStopVideoDumping();
+        return;
+    }
 
     discord_rpc->Pause();
     emu_thread->RequestStop();
@@ -1886,6 +1915,51 @@ void GMainWindow::OnCaptureScreenshot() {
         }
     }
     OnStartGame();
+}
+
+void GMainWindow::OnStartVideoDumping() {
+    const QString path = QFileDialog::getSaveFileName(
+        this, tr("Save Video"), UISettings::values.video_dumping_path, tr("WebM Videos (*.webm)"));
+    if (path.isEmpty()) {
+        ui.action_Dump_Video->setChecked(false);
+        return;
+    }
+    UISettings::values.video_dumping_path = QFileInfo(path).path();
+    if (emulation_running) {
+        Layout::FramebufferLayout layout{Layout::FrameLayoutFromResolutionScale(
+            VideoCore::GetResolutionScaleFactor(Core::System::GetInstance().Renderer()))};
+        Core::System::GetInstance().VideoDumper().StartDumping(path.toStdString(), "webm", layout);
+    } else {
+        video_dumping_on_start = true;
+        video_dumping_path = path;
+    }
+}
+
+void GMainWindow::OnStopVideoDumping() {
+    ui.action_Dump_Video->setChecked(false);
+
+    if (video_dumping_on_start) {
+        video_dumping_on_start = false;
+        video_dumping_path.clear();
+    } else {
+        const bool was_dumping = Core::System::GetInstance().VideoDumper().IsDumping();
+        if (!was_dumping)
+            return;
+        OnPauseGame();
+
+        auto future =
+            QtConcurrent::run([] { Core::System::GetInstance().VideoDumper().StopDumping(); });
+        auto* future_watcher = new QFutureWatcher<void>(this);
+        connect(future_watcher, &QFutureWatcher<void>::finished, this, [this] {
+            if (game_shutdown_delayed) {
+                game_shutdown_delayed = false;
+                ShutdownGame();
+            } else {
+                OnStartGame();
+            }
+        });
+        future_watcher->setFuture(future);
+    }
 }
 
 void GMainWindow::UpdateWindowTitle(const QString& title_name) {
