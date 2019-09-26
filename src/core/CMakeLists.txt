@@ -388,6 +388,12 @@ add_library(core STATIC
     hle/service/lbl/lbl.h
     hle/service/ldn/ldn.cpp
     hle/service/ldn/ldn.h
+    hle/service/ldn/ldn_types.cpp
+    hle/service/ldn/ldn_types.h
+    hle/service/ldn/lan_discovery.cpp
+    hle/service/ldn/lan_discovery.h
+    hle/service/ldn/lan_protocol.cpp
+    hle/service/ldn/lan_protocol.h
     hle/service/ldr/ldr.cpp
     hle/service/ldr/ldr.h
     hle/service/lm/lm.cpp
