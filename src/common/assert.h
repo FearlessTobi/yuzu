@@ -29,18 +29,14 @@ assert_noinline_call(const Fn& fn) {
 }
 
 #define ASSERT(_a_)                                                                                \
-    do                                                                                             \
-        if (!(_a_)) {                                                                              \
-            assert_noinline_call([] { LOG_CRITICAL(Debug, "Assertion Failed!"); });                \
-        }                                                                                          \
-    while (0)
+    if (!(_a_)) {                                                                                  \
+        LOG_CRITICAL(Debug, "Assertion Failed!");                                                  \
+    }
 
 #define ASSERT_MSG(_a_, ...)                                                                       \
-    do                                                                                             \
-        if (!(_a_)) {                                                                              \
-            assert_noinline_call([&] { LOG_CRITICAL(Debug, "Assertion Failed!\n" __VA_ARGS__); }); \
-        }                                                                                          \
-    while (0)
+    if (!(_a_)) {                                                                                  \
+        LOG_CRITICAL(Debug, "Assertion Failed! " __VA_ARGS__);                                     \
+    }
 
 #define UNREACHABLE() assert_noinline_call([] { LOG_CRITICAL(Debug, "Unreachable code!"); })
 #define UNREACHABLE_MSG(...)                                                                       \
