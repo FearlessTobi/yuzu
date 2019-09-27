@@ -139,20 +139,22 @@ protected:
 
     void updateNodes();
     void resetStations();
-    int getFakeMac(MacAddress* mac);
-    int getNodeInfo(NodeInfo* node, const UserConfig* userConfig, u16 localCommunicationVersion);
+    ResultCode getFakeMac(MacAddress* mac);
+    ResultCode getNodeInfo(NodeInfo* node, const UserConfig* userConfig,
+                           u16 localCommunicationVersion);
     LanEventFunc lanEvent;
 
 public:
-    int initialize(LanEventFunc lanEvent = EmptyFunc, bool listening = true);
+    ResultCode initialize(LanEventFunc lanEvent = EmptyFunc, bool listening = true);
     int finalize();
-    int initNetworkInfo();
+    ResultCode initNetworkInfo();
     ResultCode scan(NetworkInfo* networkInfo, u16* count, ScanFilter filter);
     ResultCode setAdvertiseData(const u8* data, uint16_t size);
-    int createNetwork(const SecurityConfig* securityConfig, const UserConfig* userConfig,
-                      const NetworkConfig* networkConfig);
+    ResultCode createNetwork(const SecurityConfig* securityConfig, const UserConfig* userConfig,
+                             const NetworkConfig* networkConfig);
     int destroyNetwork();
-    int connect(NetworkInfo* networkInfo, UserConfig* userConfig, u16 localCommunicationVersion);
+    ResultCode connect(NetworkInfo* networkInfo, UserConfig* userConfig,
+                       u16 localCommunicationVersion);
     int disconnect();
     ResultCode getNetworkInfo(NetworkInfo* pOutNetwork);
     ResultCode getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpdate* pOutUpdates,
@@ -182,9 +184,9 @@ public:
     int stationCount();
 
 protected:
-    int setSocketOpts(int fd);
-    int initTcp(bool listening);
-    int initUdp(bool listening);
+    ResultCode setSocketOpts(int fd);
+    ResultCode initTcp(bool listening);
+    ResultCode initUdp(bool listening);
     void initNodeStateChange();
     bool isNodeStateChanged();
 };

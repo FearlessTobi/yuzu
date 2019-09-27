@@ -3,6 +3,11 @@
 #include "common/logging/log.h"
 #include "core/hle/service/ldn/lan_protocol.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
 #define POLL_UNKNOWN (~(POLLIN | POLLPRI | POLLOUT))
 // Only used when debuging
 #define DISABLE_COMPRESS 0
@@ -52,7 +57,7 @@ LanSocket::~LanSocket() {
 
 void LanSocket::close() {
     if (this->fd != -1) {
-        //::close(this->fd);
+        ::closesocket(this->fd);
         this->fd = -1;
     }
 }
@@ -102,11 +107,11 @@ int LanSocket::recvPartPacket(u8* buffer, size_t bufLen, struct sockaddr_in* add
 }
 
 int LanSocket::recvPacket(MessageCallback callback) {
-    /*constexpr int HeaderSize = sizeof(LANPacketHeader);
+    constexpr int HeaderSize = sizeof(LANPacketHeader);
     u8 buffer[BufferSize];
     u8 decompressBuffer[BufferSize];
 
-    ssize_t len;
+    size_t len;
     struct sockaddr_in addr;
 
     len = this->recvPartPacket(buffer, sizeof(buffer), &addr);
@@ -138,40 +143,40 @@ int LanSocket::recvPacket(MessageCallback callback) {
     ReplyFunc reply = [&](LANPacketType type, const void* data, size_t size) {
         return this->sendPacket(type, data, size, &addr);
     };
-    return callback(header->type, body, bodyLen, reply);*/
-
-    // TODO: remove
-    return 0;
+    return callback(header->type, body, bodyLen, reply);
 }
+
 int LanSocket::sendPacket(LANPacketType type, const void* data, size_t size) {
     return this->sendPacket(type, data, size, nullptr);
 }
+
 int LanSocket::sendPacket(LANPacketType type, const void* data, size_t size,
                           struct sockaddr_in* addr) {
-    /*LANPacketHeader header;
-   this->prepareHeader(header, type);
-   if (data == NULL) {
-       size = 0;
-   }
-   header.length = size;
-   u8 buf[size + sizeof(header)];
-   if (size > 0) {
-       u8 compressed[size];
-       size_t outSize = size;
-       if (this->compress(data, size, compressed, &outSize) == 0) {
-           std::memcpy(buf + sizeof(header), compressed, outSize);
-           header.decompress_length = header.length;
-           header.length = outSize;
-           header.compressed = true;
-       } else {
-           std::memcpy(buf + sizeof(header), data, size);
-       }
-   }
-   std::memcpy(buf, &header, sizeof(header));
+    LANPacketHeader header;
+    this->prepareHeader(header, type);
+    if (data == NULL) {
+        size = 0;
+    }
+    header.length = size;
+    u8* buf = new u8[size + sizeof(header)];
+    if (size > 0) {
+        u8* compressed = new u8[size];
+        size_t outSize = size;
+        if (this->compress(data, size, compressed, &outSize) == 0) {
+            std::memcpy(buf + sizeof(header), compressed, outSize);
+            header.decompress_length = header.length;
+            header.length = outSize;
+            header.compressed = true;
+        } else {
+            std::memcpy(buf + sizeof(header), data, size);
+        }
+        delete[] compressed;
+    }
+    std::memcpy(buf, &header, sizeof(header));
 
-   return this->sendto(buf, header.length + sizeof(header), addr);*/
-    // TODO: remove
-    return 0;
+    delete[] buf;
+
+    return this->sendto(buf, header.length + sizeof(header), addr);
 }
 
 void LanSocket::prepareHeader(LANPacketHeader& header, LANPacketType type) {
@@ -185,43 +190,34 @@ void LanSocket::prepareHeader(LANPacketHeader& header, LANPacketType type) {
 }
 
 size_t TcpLanSocketBase::recvfrom(void* buf, size_t len, struct sockaddr_in* addr) {
-    /* auto rc = ::recvfrom(this->fd, buf, len, 0, nullptr, 0);
+    auto rc = ::recvfrom(this->fd, (char*)buf, len, 0, nullptr, 0);
     if (rc == 0) {
         return -0xFD23;
     }
-    return rc;*/
-    // TODO: remove
-    return 0;
+    return rc;
 }
+
 int TcpLanSocketBase::sendto(const void* buf, size_t len, struct sockaddr_in* addr) {
-    /*return ::sendto(this->fd, buf, len, 0, nullptr, 0);*/
-    // TODO: remove
-    return 0;
+    return ::sendto(this->fd, (const char*)buf, len, 0, nullptr, 0);
 }
 
 size_t UdpLanSocketBase::recvfrom(void* buf, size_t len, struct sockaddr_in* addr) {
-    /*socklen_t addr_len = sizeof(*addr);
-   return ::recvfrom(this->fd, buf, len, 0, (struct sockaddr*)addr, &addr_len);*/
-    // TODO: remove
-    return 0;
+    socklen_t addr_len = sizeof(*addr);
+    return ::recvfrom(this->fd, (char*)buf, len, 0, (struct sockaddr*)addr, &addr_len);
 }
+
 int UdpLanSocketBase::sendto(const void* buf, size_t len, struct sockaddr_in* addr) {
-    /*return ::sendto(this->fd, buf, len, 0, (struct sockaddr*)addr, sizeof(*addr));*/
-    // TODO: remove
-    return 0;
+    return ::sendto(this->fd, (const char*)buf, len, 0, (struct sockaddr*)addr, sizeof(*addr));
 }
 
 int UdpLanSocketBase::sendBroadcast(LANPacketType type, const void* data, size_t size) {
-    /*struct sockaddr_in addr;
+    struct sockaddr_in addr;
 
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(this->getBroadcast());
     addr.sin_port = htons(this->listenPort);
 
-    return this->sendPacket(type, data, size, &addr);*/
-
-    // TODO: remove
-    return 0;
+    return this->sendPacket(type, data, size, &addr);
 }
 int UdpLanSocketBase::sendBroadcast(LANPacketType type) {
     return this->sendBroadcast(type, nullptr, 0);

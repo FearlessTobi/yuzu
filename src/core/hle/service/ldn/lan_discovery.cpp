@@ -1,5 +1,11 @@
 #include "common/logging/log.h"
 #include "core/hle/service/ldn/lan_discovery.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
 //#include "ipinfo.hpp"
 
 static const int ModuleID = 0xFD;
@@ -11,11 +17,20 @@ const LANDiscovery::LanEventFunc LANDiscovery::EmptyFunc = []() {};
 constexpr ResultCode COMMON_LDN_ERR{ErrorModule::LDN, 32};
 constexpr ResultCode LDN_ERR_20{ErrorModule::LDN, 20};
 constexpr ResultCode LDN_ERR_10{ErrorModule::LDN, 10};
+constexpr ResultCode LDN_ERR_30{ErrorModule::LDN, 30};
+constexpr ResultCode LDN_ERR_31{ErrorModule::LDN, 31};
 constexpr ResultCode LDN_ERR_50{ErrorModule::LDN, 50};
+constexpr ResultCode LDN_ERR_1{ErrorModule::LDN, 1};
+constexpr ResultCode LDN_ERR_2{ErrorModule::LDN, 2};
+constexpr ResultCode LDN_ERR_4{ErrorModule::LDN, 4};
+constexpr ResultCode LDN_ERR_5{ErrorModule::LDN, 5};
+constexpr ResultCode LDN_ERR_6{ErrorModule::LDN, 6};
+constexpr ResultCode LDN_ERR_7{ErrorModule::LDN, 7};
+constexpr ResultCode LDN_ERR_8{ErrorModule::LDN, 8};
 
 int LanStation::onRead() {
     if (!this->socket) {
-        LOG_CRITICAL(Service_LDN, "Nullptr %d\n", this->nodeId);
+        LOG_CRITICAL(Service_LDN, "Nullptr {}", this->nodeId);
         return -1;
     }
     return this->socket->recvPacket(
@@ -32,14 +47,14 @@ int LanStation::onRead() {
 
                 this->discovery->updateNodes();
             } else {
-                LOG_CRITICAL(Service_LDN, "unexpecting type %d", static_cast<int>(type));
+                LOG_CRITICAL(Service_LDN, "unexpecting type {}", static_cast<int>(type));
             }
             return 0;
         });
 }
 
 void LanStation::onClose() {
-    LOG_CRITICAL(Service_LDN, "LanStation::onClose %d", this->nodeId);
+    LOG_CRITICAL(Service_LDN, "LanStation::onClose {}", this->nodeId);
     this->reset();
     this->discovery->updateNodes();
 }
@@ -70,7 +85,7 @@ int LDUdpSocket::onRead() {
             break;
         }
         default: {
-            LOG_CRITICAL(Service_LDN, "LDUdpSocket::onRead unhandle type %d",
+            LOG_CRITICAL(Service_LDN, "LDUdpSocket::onRead unhandle type {}",
                          static_cast<int>(type));
             break;
         }
@@ -81,7 +96,7 @@ int LDUdpSocket::onRead() {
 
 int LDTcpSocket::onRead() {
     LOG_CRITICAL(Service_LDN, "LDTcpSocket::onRead");
-    /*const auto state = this->discovery->getState();
+    const auto state = this->discovery->getState();
     if (state == CommState::Station || state == CommState::StationConnected) {
         return this->recvPacket(
             [&](LANPacketType type, const void* data, size_t size, ReplyFunc reply) -> int {
@@ -94,7 +109,7 @@ int LDTcpSocket::onRead() {
 
                     this->discovery->onSyncNetwork(info);
                 } else {
-                    LOG_CRITICAL(Service_LDN, "LDTcpSocket::onRead unhandle type %d",
+                    LOG_CRITICAL(Service_LDN, "LDTcpSocket::onRead unhandle type {}",
                                  static_cast<int>(type));
                     return -1;
                 }
@@ -112,12 +127,9 @@ int LDTcpSocket::onRead() {
         this->discovery->onConnect(new_fd);
         return 0;
     } else {
-        LOG_CRITICAL(Service_LDN, "LDTcpSocket::onRead wrong state %d", static_cast<int>(state));
+        LOG_CRITICAL(Service_LDN, "LDTcpSocket::onRead wrong state {}", static_cast<int>(state));
         return -1;
-    }*/
-
-    // TODO: remove
-    return 0;
+    }
 }
 
 void LDTcpSocket::onClose() {
@@ -126,18 +138,15 @@ void LDTcpSocket::onClose() {
 }
 
 u32 LDUdpSocket::getBroadcast() {
-    /*u32 address;
+    u32 address;
     u32 netmask;
-    int rc = ipinfoGetIpConfig(&address, &netmask);
+    int rc = 0; // ipinfoGetIpConfig(&address, &netmask);
     if (rc != 0) {
         LOG_CRITICAL(Service_LDN, "Broadcast failed to get ip");
         return 0xFFFFFFFF;
     }
     u32 ret = address | ~netmask;
-    return ret;*/
-
-    // TODO: Remove
-    return 0;
+    return ret;
 }
 
 void LANDiscovery::onSyncNetwork(NetworkInfo* info) {
@@ -149,7 +158,7 @@ void LANDiscovery::onSyncNetwork(NetworkInfo* info) {
 }
 
 void LANDiscovery::onConnect(int new_fd) {
-    LOG_CRITICAL(Service_LDN, "Accepted %d", new_fd);
+    LOG_CRITICAL(Service_LDN, "Accepted{}", new_fd);
     if (this->stationCount() >= StationCountMax) {
         LOG_CRITICAL(Service_LDN, "Close new_fd. stations are full");
         // close(new_fd);
@@ -172,7 +181,7 @@ void LANDiscovery::onConnect(int new_fd) {
 }
 
 void LANDiscovery::onDisconnectFromHost() {
-    LOG_CRITICAL(Service_LDN, "onDisconnectFromHost state: %d", static_cast<int>(this->state));
+    LOG_CRITICAL(Service_LDN, "onDisconnectFromHost state:{}", static_cast<int>(this->state));
     if (this->state == CommState::StationConnected) {
         this->setState(CommState::Station);
     }
@@ -193,7 +202,7 @@ ResultCode LANDiscovery::setAdvertiseData(const u8* data, uint16_t size) {
     if (size > 0 && data != nullptr) {
         std::memcpy(this->networkInfo.ldn.advertiseData, data, size);
     } else {
-        LOG_CRITICAL(Service_LDN, "LANDiscovery::setAdvertiseData data %p size %lu", data, size);
+        LOG_CRITICAL(Service_LDN, "LANDiscovery::setAdvertiseData size {}", size);
     }
     this->networkInfo.ldn.advertiseDataSize = size;
 
@@ -202,9 +211,9 @@ ResultCode LANDiscovery::setAdvertiseData(const u8* data, uint16_t size) {
     return RESULT_SUCCESS;
 }
 
-int LANDiscovery::initNetworkInfo() {
-    int rc = getFakeMac(&this->networkInfo.common.bssid);
-    if (rc != 0) {
+ResultCode LANDiscovery::initNetworkInfo() {
+    ResultCode rc = getFakeMac(&this->networkInfo.common.bssid);
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
     this->networkInfo.common.channel = 6;
@@ -218,55 +227,51 @@ int LANDiscovery::initNetworkInfo() {
         nodes[i].isConnected = 0;
     }
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
-int LANDiscovery::getFakeMac(MacAddress* mac) {
-    /*mac->raw[0] = 0x02;
+ResultCode LANDiscovery::getFakeMac(MacAddress* mac) {
+    mac->raw[0] = 0x02;
     mac->raw[1] = 0x00;
 
     u32 ip;
-    int rc = ipinfoGetIpConfig(&ip);
-    if (R_SUCCEEDED(rc)) {
+    ResultCode rc = RESULT_SUCCESS; // ipinfoGetIpConfig(&ip);
+    if (rc == RESULT_SUCCESS) {
         memcpy(mac->raw + 2, &ip, sizeof(ip));
     }
 
-    return rc;*/
-
-    // TODO: Remove
-    return 0;
+    return rc;
 }
 
-int LANDiscovery::setSocketOpts(int fd) {
-    /*int rc;
+ResultCode LANDiscovery::setSocketOpts(int fd) {
+    int rc;
 
     {
         int b = 1;
-        rc = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &b, sizeof(b));
+        rc = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (const char*)&b, sizeof(b));
         if (rc != 0) {
-            return 0; //return MAKERESULT(ModuleID, 4);
+            return LDN_ERR_4;
         }
     }
     {
         int yes = 1;
-        rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+        rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&yes, sizeof(yes));
         if (rc != 0) {
-            // return 0; //return MAKERESULT(ModuleID, 5);
             LOG_CRITICAL(Service_LDN, "SO_REUSEADDR failed");
+            return LDN_ERR_5;
         }
-    }*/
+    }
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
-int LANDiscovery::initTcp(bool listening) {
-    /*int fd;
-    int rc;
+ResultCode LANDiscovery::initTcp(bool listening) {
+    int fd;
     struct sockaddr_in addr;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
-        return 0; //return MAKERESULT(ModuleID, 6);
+        return LDN_ERR_6;
     }
     auto tcpSocket = std::make_unique<LDTcpSocket>(fd, this);
 
@@ -275,55 +280,54 @@ int LANDiscovery::initTcp(bool listening) {
         addr.sin_addr.s_addr = htons(INADDR_ANY);
         addr.sin_port = htons(listenPort);
         if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-            return 0; //return MAKERESULT(ModuleID, 7);
+            return LDN_ERR_7;
         }
         if (listen(fd, 10) != 0) {
-            return 0; //return MAKERESULT(ModuleID, 8);
+            return LDN_ERR_8;
         }
     }
-    rc = setSocketOpts(fd);
-    if (rc != 0) {
+    ResultCode rc = setSocketOpts(fd);
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
 
     {
-        std::scoped_lock<HosMutex> lock(this->pollMutex);
+        std::scoped_lock<std::mutex> lock(this->pollMutex);
         this->tcp = std::move(tcpSocket);
-    }*/
+    }
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
-int LANDiscovery::initUdp(bool listening) {
-    /* int fd;
-     int rc;
-      struct sockaddr_in addr;
+ResultCode LANDiscovery::initUdp(bool listening) {
+    int fd;
+    struct sockaddr_in addr;
 
-      fd = socket(AF_INET, SOCK_DGRAM, 0);
-      if (fd < 0) {
-          return 0; //return MAKERESULT(ModuleID, 1);
-      }
-      auto udpSocket = std::make_unique<LDUdpSocket>(fd, this);
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return LDN_ERR_1;
+    }
+    auto udpSocket = std::make_unique<LDUdpSocket>(fd, this);
 
-      if (listening) {
-          addr.sin_family = AF_INET;
-          addr.sin_addr.s_addr = htons(INADDR_ANY);
-          addr.sin_port = htons(listenPort);
-          if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-              return 0; //return MAKERESULT(ModuleID, 2);
-          }
-      }
-      rc = setSocketOpts(fd);
-      if (rc != 0) {
-          return rc;
-      }
+    if (listening) {
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = htons(INADDR_ANY);
+        addr.sin_port = htons(listenPort);
+        if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+            return LDN_ERR_2;
+        }
+    }
+    ResultCode rc = setSocketOpts(fd);
+    if (rc != RESULT_SUCCESS) {
+        return rc;
+    }
 
-      {
-          std::scoped_lock<HosMutex> lock(this->pollMutex);
-          this->udp = std::move(udpSocket);
-      }*/
+    {
+        std::scoped_lock<std::mutex> lock(this->pollMutex);
+        this->udp = std::move(udpSocket);
+    }
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
 void LANDiscovery::initNodeStateChange() {
@@ -359,9 +363,9 @@ void LANDiscovery::Worker(void* args) {
 }
 
 ResultCode LANDiscovery::scan(NetworkInfo* pOutNetwork, u16* count, ScanFilter filter) {
-    /*this->udp->scanResults.clear();
+    this->udp->scanResults.clear();
 
-    //TODO: Probably this is the problem
+    // TODO: Probably this is the problem
     int len = this->udp->sendBroadcast(LANPacketType::Scan);
     if (len < 0) {
         return LDN_ERR_20;
@@ -399,7 +403,7 @@ ResultCode LANDiscovery::scan(NetworkInfo* pOutNetwork, u16* count, ScanFilter f
             pOutNetwork[i++] = info;
         }
     }
-    *count = i;*/
+    *count = i;
 
     return RESULT_SUCCESS;
 }
@@ -447,25 +451,22 @@ void LANDiscovery::updateNodes() {
 }
 
 int LANDiscovery::loopPoll() {
-    /* int rc;
-     if (!inited) {
-         return 0;
-     }
+    int rc;
+    if (!inited) {
+        return 0;
+    }
 
-     std::lock_guard<std::mutex> lock(this->pollMutex);
-     int nfds = 2 + StationCountMax;
-     Pollable* fds[nfds];
-     fds[0] = this->udp.get();
-     fds[1] = this->tcp.get();
-     for (int i = 0; i < StationCountMax; i++) {
-         fds[2 + i] = this->stations.data() + i;
-     }
-     rc = Pollable::Poll(fds, nfds);
+    std::lock_guard<std::mutex> lock(this->pollMutex);
+    int nfds = 2 + StationCountMax;
+    /*Pollable* fds[nfds];
+    fds[0] = this->udp.get();
+    fds[1] = this->tcp.get();
+    for (int i = 0; i < StationCountMax; i++) {
+        fds[2 + i] = this->stations.data() + i;
+    }
+    rc = Pollable::Poll(fds, nfds);*/
 
-     return rc;*/
-
-    // TODO: remove
-    return 0;
+    return rc;
 }
 
 LANDiscovery::~LANDiscovery() {
@@ -517,7 +518,7 @@ ResultCode LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpda
             nodeChanges[i].stateChange = NodeStateChange_None;
             str[i] = '0' + pOutUpdates[i].stateChange;
         }
-        LOG_CRITICAL(Service_LDN, "getNetworkInfo updates %s", str);
+        LOG_CRITICAL(Service_LDN, "getNetworkInfo updates {}", str);
     } else {
         rc = COMMON_LDN_ERR;
     }
@@ -525,16 +526,16 @@ ResultCode LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpda
     return rc;
 }
 
-int LANDiscovery::getNodeInfo(NodeInfo* node, const UserConfig* userConfig,
-                              u16 localCommunicationVersion) {
+ResultCode LANDiscovery::getNodeInfo(NodeInfo* node, const UserConfig* userConfig,
+                                     u16 localCommunicationVersion) {
     u32 ipAddress = 0;
-    int rc = 0;
+    ResultCode rc = RESULT_SUCCESS;
     // ipinfoGetIpConfig(&ipAddress);
-    if (rc != 0) {
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
     rc = getFakeMac(&node->macAddress);
-    if (rc != 0) {
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
 
@@ -543,23 +544,24 @@ int LANDiscovery::getNodeInfo(NodeInfo* node, const UserConfig* userConfig,
     node->localCommunicationVersion = localCommunicationVersion;
     node->ipv4Address = ipAddress;
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
-int LANDiscovery::createNetwork(const SecurityConfig* securityConfig, const UserConfig* userConfig,
-                                const NetworkConfig* networkConfig) {
-    int rc = 0;
+ResultCode LANDiscovery::createNetwork(const SecurityConfig* securityConfig,
+                                       const UserConfig* userConfig,
+                                       const NetworkConfig* networkConfig) {
+    ResultCode rc = RESULT_SUCCESS;
 
     if (this->state != CommState::AccessPoint) {
-        return 0; // return COMMON_LDN_ERR;
+        return COMMON_LDN_ERR;
     }
 
     rc = this->initTcp(true);
-    if (rc != 0) {
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
     rc = this->initNetworkInfo();
-    if (rc != 0) {
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
     this->networkInfo.ldn.nodeCountMax = networkConfig->nodeCountMax;
@@ -574,7 +576,7 @@ int LANDiscovery::createNetwork(const SecurityConfig* securityConfig, const User
 
     NodeInfo* node0 = &this->networkInfo.ldn.nodes[0];
     rc = this->getNodeInfo(node0, userConfig, networkConfig->localCommunicationVersion);
-    if (rc != 0) {
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
 
@@ -667,10 +669,10 @@ ResultCode LANDiscovery::closeStation() {
     return RESULT_SUCCESS;
 }
 
-int LANDiscovery::connect(NetworkInfo* networkInfo, UserConfig* userConfig,
-                          u16 localCommunicationVersion) {
-    /*if (networkInfo->ldn.nodeCount == 0) {
-        return 0; //return MAKERESULT(ModuleID, 30);
+ResultCode LANDiscovery::connect(NetworkInfo* networkInfo, UserConfig* userConfig,
+                                 u16 localCommunicationVersion) {
+    if (networkInfo->ldn.nodeCount == 0) {
+        return LDN_ERR_30;
     }
 
     u32 hostIp = networkInfo->ldn.nodes[0].ipv4Address;
@@ -678,34 +680,34 @@ int LANDiscovery::connect(NetworkInfo* networkInfo, UserConfig* userConfig,
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(hostIp);
     addr.sin_port = htons(listenPort);
-    LOG_CRITICAL(Service_LDN, "connect hostIp %x", hostIp);
+    LOG_CRITICAL(Service_LDN, "connect hostIp {}", hostIp);
 
-    int rc = this->initTcp(false);
-    if (rc != 0) {
+    ResultCode rc = this->initTcp(false);
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
 
     int ret = ::connect(this->tcp->getFd(), (struct sockaddr*)&addr, sizeof(addr));
     if (ret != 0) {
         LOG_CRITICAL(Service_LDN, "connect failed");
-        return 0; //return MAKERESULT(ModuleID, 31);
+        return LDN_ERR_31;
     }
 
     NodeInfo myNode = {0};
     rc = this->getNodeInfo(&myNode, userConfig, localCommunicationVersion);
-    if (rc != 0) {
+    if (rc != RESULT_SUCCESS) {
         return rc;
     }
     ret = this->tcp->sendPacket(LANPacketType::Connect, &myNode, sizeof(myNode));
     if (ret < 0) {
         LOG_CRITICAL(Service_LDN, "sendPacket failed");
-        return 0; //return MAKERESULT(ModuleID, 32);
+        return COMMON_LDN_ERR;
     }
     this->initNodeStateChange();
 
-    svcSleepThread(1000000000L); // 1sec*/
+    // svcSleepThread(1000000000L); // 1sec*/
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
 int LANDiscovery::finalize() {
@@ -723,9 +725,9 @@ int LANDiscovery::finalize() {
     return 0;
 }
 
-int LANDiscovery::initialize(LanEventFunc lanEvent, bool listening) {
+ResultCode LANDiscovery::initialize(LanEventFunc lanEvent, bool listening) {
     if (this->inited) {
-        return 0;
+        return RESULT_SUCCESS;
     }
 
     for (auto& i : stations) {
@@ -735,9 +737,9 @@ int LANDiscovery::initialize(LanEventFunc lanEvent, bool listening) {
     }
 
     this->lanEvent = lanEvent;
-    int rc = initUdp(listening);
-    if (rc != 0) {
-        LOG_CRITICAL(Service_LDN, "initUdp %x", rc);
+    ResultCode rc = initUdp(listening);
+    if (rc != RESULT_SUCCESS) {
+        LOG_CRITICAL(Service_LDN, "initUdp {}", rc == RESULT_SUCCESS);
         return rc;
     }
 
@@ -752,5 +754,5 @@ int LANDiscovery::initialize(LanEventFunc lanEvent, bool listening) {
     this->setState(CommState::Initialized);
 
     this->inited = true;
-    return 0;
+    return RESULT_SUCCESS;
 }
