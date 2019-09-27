@@ -328,7 +328,7 @@ void ISelfController::Exit(Kernel::HLERequestContext& ctx) {
 void ISelfController::LockExit(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_AM, "called");
 
-    system.SetExitLock(true);
+    // system.SetExitLock(true);
 
     IPC::ResponseBuilder rb{ctx, 2};
     rb.Push(RESULT_SUCCESS);

@@ -11,6 +11,7 @@ const LANDiscovery::LanEventFunc LANDiscovery::EmptyFunc = []() {};
 constexpr ResultCode COMMON_LDN_ERR{ErrorModule::LDN, 32};
 constexpr ResultCode LDN_ERR_20{ErrorModule::LDN, 20};
 constexpr ResultCode LDN_ERR_10{ErrorModule::LDN, 10};
+constexpr ResultCode LDN_ERR_50{ErrorModule::LDN, 50};
 
 int LanStation::onRead() {
     if (!this->socket) {
@@ -149,9 +150,9 @@ void LANDiscovery::onSyncNetwork(NetworkInfo* info) {
 
 void LANDiscovery::onConnect(int new_fd) {
     LOG_CRITICAL(Service_LDN, "Accepted %d", new_fd);
-    /*if (this->stationCount() >= StationCountMax) {
+    if (this->stationCount() >= StationCountMax) {
         LOG_CRITICAL(Service_LDN, "Close new_fd. stations are full");
-        close(new_fd);
+        // close(new_fd);
         return;
     }
 
@@ -166,8 +167,8 @@ void LANDiscovery::onConnect(int new_fd) {
 
     if (!found) {
         LOG_CRITICAL(Service_LDN, "Close new_fd. no free station found");
-        close(new_fd);
-    }*/
+        // close(new_fd);
+    }
 }
 
 void LANDiscovery::onDisconnectFromHost() {
@@ -485,25 +486,25 @@ void LANDiscovery::worker() {
     svcExitThread();*/
 }
 
-int LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork) {
-    int rc = 0;
+ResultCode LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork) {
+    ResultCode rc = RESULT_SUCCESS;
 
-    /*if (this->state == CommState::AccessPointCreated ||
+    if (this->state == CommState::AccessPointCreated ||
         this->state == CommState::StationConnected) {
         std::memcpy(pOutNetwork, &networkInfo, sizeof(networkInfo));
     } else {
-        rc = MAKERESULT(LdnModuleId, 32);
-    }*/
+        rc = COMMON_LDN_ERR;
+    }
 
     return rc;
 }
 
-int LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpdate* pOutUpdates,
-                                 int bufferCount) {
-    int rc = 0;
+ResultCode LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpdate* pOutUpdates,
+                                        int bufferCount) {
+    ResultCode rc = RESULT_SUCCESS;
 
-    /*if (bufferCount < 0 || bufferCount > NodeCountMax) {
-        return MAKERESULT(ModuleID, 50);
+    if (bufferCount < 0 || bufferCount > NodeCountMax) {
+        return LDN_ERR_50;
     }
 
     if (this->state == CommState::AccessPointCreated ||
@@ -518,16 +519,17 @@ int LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpdate* pOu
         }
         LOG_CRITICAL(Service_LDN, "getNetworkInfo updates %s", str);
     } else {
-        rc = MAKERESULT(LdnModuleId, 32);
-    }*/
+        rc = COMMON_LDN_ERR;
+    }
 
     return rc;
 }
 
 int LANDiscovery::getNodeInfo(NodeInfo* node, const UserConfig* userConfig,
                               u16 localCommunicationVersion) {
-    /*u32 ipAddress;
-    int rc = ipinfoGetIpConfig(&ipAddress);
+    u32 ipAddress = 0;
+    int rc = 0;
+    // ipinfoGetIpConfig(&ipAddress);
     if (rc != 0) {
         return rc;
     }
@@ -539,7 +541,7 @@ int LANDiscovery::getNodeInfo(NodeInfo* node, const UserConfig* userConfig,
     node->isConnected = 1;
     strcpy(node->userName, userConfig->userName);
     node->localCommunicationVersion = localCommunicationVersion;
-    node->ipv4Address = ipAddress;*/
+    node->ipv4Address = ipAddress;
 
     return 0;
 }

@@ -108,13 +108,13 @@ public:
         // clang-format off
         static const FunctionInfo functions[] = {
             {0, &IUserLocalCommunicationService::GetState, "GetState"},
-            {1, nullptr, "GetNetworkInfo"},
-            {2, nullptr, "GetIpv4Address"},
+            {1, &IUserLocalCommunicationService::GetNetworkInfo, "GetNetworkInfo"},
+            {2, &IUserLocalCommunicationService::GetIpv4Address, "GetIpv4Address"},
             {3,  &IUserLocalCommunicationService::GetDisconnectReason, "GetDisconnectReason"},
-            {4, nullptr, "GetSecurityParameter"},
+            {4, &IUserLocalCommunicationService::GetSecurityParameter, "GetSecurityParameter"},
             {5, nullptr, "GetNetworkConfig"},
             {100, &IUserLocalCommunicationService::AttachStateChangeEvent, "AttachStateChangeEvent"},
-            {101, nullptr, "GetNetworkInfoLatestUpdate"},
+            {101, &IUserLocalCommunicationService::GetNetworkInfoLatestUpdate, "GetNetworkInfoLatestUpdate"},
             {102, &IUserLocalCommunicationService::Scan, "Scan"},
             {103, nullptr, "ScanPrivate"},
             {104, nullptr, "SetWirelessControllerRestriction"},
@@ -206,11 +206,10 @@ public:
         ResultCode rc = RESULT_SUCCESS;
 
         NetworkInfo info{};
-        NetworkInfo* info_ptr = &info;
 
         // TODO: Stubbed
         u16 count = 0;
-        rc = lanDiscovery.scan(info_ptr, &count, filter);
+        rc = lanDiscovery.scan(&info, &count, filter);
 
         std::array<u8, sizeof(info)> out_buf;
         std::memcpy(&out_buf, &info, sizeof(info));
@@ -280,7 +279,64 @@ public:
         rb.Push(0);
     }
 
-    // TODO: Rocket League: 'SetSockOpt' when creating Lobby
+    void GetSecurityParameter(Kernel::HLERequestContext& ctx) {
+        // TODO: Correct ResultCode checking everywhere
+        LOG_CRITICAL(Service_LDN, "called");
+
+        SecurityParameter data;
+        NetworkInfo info;
+        ResultCode rc = lanDiscovery.getNetworkInfo(&info);
+        if (rc == RESULT_SUCCESS) {
+            NetworkInfo2SecurityParameter(&info, &data);
+        }
+
+        IPC::ResponseBuilder rb{ctx, 2 + 0x20};
+        rb.Push(rc);
+        rb.PushRaw<SecurityParameter>(data);
+    }
+
+    void GetNetworkInfo(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        NetworkInfo info{};
+        ResultCode rc = lanDiscovery.getNetworkInfo(&info);
+
+        std::array<u8, sizeof(info)> out_buf;
+        std::memcpy(&out_buf, &info, sizeof(info));
+
+        LOG_CRITICAL(Service_LDN, "channel: {}", info.common.channel);
+        LOG_CRITICAL(Service_LDN, "linkLevel: {}", info.common.linkLevel);
+
+        ctx.WriteBuffer(out_buf);
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(rc);
+    }
+
+    void GetNetworkInfoLatestUpdate(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        NetworkInfo info{};
+        NodeLatestUpdate updates{};
+
+        // TODO: Unstub size
+        ResultCode rc = lanDiscovery.getNetworkInfo(&info, &updates, 0);
+
+        std::array<u8, sizeof(info)> out_buf_0;
+        std::memcpy(&out_buf_0, &info, sizeof(info));
+
+        std::array<u8, sizeof(updates)> out_buf_1;
+        std::memcpy(&out_buf_1, &updates, sizeof(updates));
+
+        LOG_CRITICAL(Service_LDN, "channel: {}", info.common.channel);
+        LOG_CRITICAL(Service_LDN, "linkLevel: {}", info.common.linkLevel);
+
+        ctx.WriteBuffer(out_buf_0);
+        ctx.WriteBuffer(out_buf_1);
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(rc);
+    }
 
 private:
     LANDiscovery lanDiscovery;

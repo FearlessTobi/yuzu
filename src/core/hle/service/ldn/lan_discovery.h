@@ -154,8 +154,9 @@ public:
     int destroyNetwork();
     int connect(NetworkInfo* networkInfo, UserConfig* userConfig, u16 localCommunicationVersion);
     int disconnect();
-    int getNetworkInfo(NetworkInfo* pOutNetwork);
-    int getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpdate* pOutUpdates, int bufferCount);
+    ResultCode getNetworkInfo(NetworkInfo* pOutNetwork);
+    ResultCode getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpdate* pOutUpdates,
+                              int bufferCount);
     ResultCode openAccessPoint();
     ResultCode closeAccessPoint();
     ResultCode openStation();
