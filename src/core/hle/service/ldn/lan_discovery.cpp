@@ -161,7 +161,7 @@ void LANDiscovery::onConnect(int new_fd) {
     LOG_CRITICAL(Service_LDN, "Accepted{}", new_fd);
     if (this->stationCount() >= StationCountMax) {
         LOG_CRITICAL(Service_LDN, "Close new_fd. stations are full");
-        // close(new_fd);
+        closesocket(new_fd);
         return;
     }
 
@@ -176,7 +176,7 @@ void LANDiscovery::onConnect(int new_fd) {
 
     if (!found) {
         LOG_CRITICAL(Service_LDN, "Close new_fd. no free station found");
-        // close(new_fd);
+        closesocket(new_fd);
     }
 }
 
@@ -371,7 +371,8 @@ ResultCode LANDiscovery::scan(NetworkInfo* pOutNetwork, u16* count, ScanFilter f
         return LDN_ERR_20;
     }
 
-    // TODO: svcSleepThread(1000000000L); // 1sec
+    // svcSleepThread(1000000000L); // 1sec
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     int i = 0;
     for (auto& item : this->udp->scanResults) {
@@ -706,6 +707,7 @@ ResultCode LANDiscovery::connect(NetworkInfo* networkInfo, UserConfig* userConfi
     this->initNodeStateChange();
 
     // svcSleepThread(1000000000L); // 1sec*/
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     return RESULT_SUCCESS;
 }
@@ -745,11 +747,11 @@ ResultCode LANDiscovery::initialize(LanEventFunc lanEvent, bool listening) {
 
     /* if (R_FAILED(this->workerThread.Initialize(&Worker, this, 0x4000, 0x15, 2))) {
          LOG_CRITICAL(Service_LDN, "LANDiscovery Failed to threadCreate");
-         return 0xF601;
+         return ResultCode(0xF601);
      }
      if (R_FAILED(this->workerThread.Start())) {
          LOG_CRITICAL(Service_LDN, "LANDiscovery Failed to threadStart");
-         return 0xF601;
+         return ResultCode(0xF601);
      }*/
     this->setState(CommState::Initialized);
 
