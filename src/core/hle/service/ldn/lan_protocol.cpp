@@ -13,13 +13,13 @@
 #define DISABLE_COMPRESS 0
 
 int Pollable::Poll(Pollable* fds[], size_t nfds, int timeout) {
-    /*struct pollfd pfds[nfds];
+    struct pollfd* pfds = new pollfd[nfds];
     for (size_t i = 0; i < nfds; i++) {
         pfds[i].fd = fds[i] ? fds[i]->getFd() : -1;
         pfds[i].events = POLLIN;
         pfds[i].revents = 0;
     }
-    int rc = poll(pfds, nfds, timeout);
+    int rc = WSAPoll(pfds, nfds, timeout);
     if (rc < 0) {
         LOG_CRITICAL(Service_LDN, "Pollable::Poll failed %d", rc);
         return -1;
@@ -46,7 +46,9 @@ int Pollable::Poll(Pollable* fds[], size_t nfds, int timeout) {
                 }
             }
         }
-    }*/
+    }
+
+    delete[] pfds;
 
     return 0;
 }
