@@ -51,10 +51,10 @@ LanSocket::~LanSocket() {
 }
 
 void LanSocket::close() {
-    /* if (this->fd != -1) {
-         ::close(this->fd);
-         this->fd = -1;
-     }*/
+    if (this->fd != -1) {
+        //::close(this->fd);
+        this->fd = -1;
+    }
 }
 
 void LanSocket::resetRecvSize() {

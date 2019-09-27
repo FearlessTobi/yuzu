@@ -537,8 +537,8 @@ void Maxwell3D::ProcessQueryGet() {
         break;
     default:
         result = 1;
-        UNIMPLEMENTED_MSG("Unimplemented query select type {}",
-                          static_cast<u32>(regs.query.query_get.select.Value()));
+        // UNIMPLEMENTED_MSG("Unimplemented query select type {}",
+        //                 static_cast<u32>(regs.query.query_get.select.Value()));
     }
 
     // TODO(Subv): Research and implement how query sync conditions work.
