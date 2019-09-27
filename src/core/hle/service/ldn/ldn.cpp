@@ -147,7 +147,7 @@ public:
     }
 
     void Initialize(Kernel::HLERequestContext& ctx) {
-        int result_code = lanDiscovery.initialize([&]() { this->onEventFired(); });
+        ResultCode result_code = lanDiscovery.initialize([&]() { this->onEventFired(); });
 
         LOG_CRITICAL(Service_LDN, "called");
 
