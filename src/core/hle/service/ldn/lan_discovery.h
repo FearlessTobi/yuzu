@@ -148,7 +148,7 @@ public:
     int finalize();
     int initNetworkInfo();
     ResultCode scan(NetworkInfo* networkInfo, u16* count, ScanFilter filter);
-    int setAdvertiseData(const u8* data, uint16_t size);
+    ResultCode setAdvertiseData(const u8* data, uint16_t size);
     int createNetwork(const SecurityConfig* securityConfig, const UserConfig* userConfig,
                       const NetworkConfig* networkConfig);
     int destroyNetwork();

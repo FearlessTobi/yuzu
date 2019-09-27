@@ -10,6 +10,7 @@ const LANDiscovery::LanEventFunc LANDiscovery::EmptyFunc = []() {};
 
 constexpr ResultCode COMMON_LDN_ERR{ErrorModule::LDN, 32};
 constexpr ResultCode LDN_ERR_20{ErrorModule::LDN, 20};
+constexpr ResultCode LDN_ERR_10{ErrorModule::LDN, 10};
 
 int LanStation::onRead() {
     if (!this->socket) {
@@ -183,9 +184,9 @@ void LANDiscovery::onNetworkInfoChanged() {
     return;
 }
 
-int LANDiscovery::setAdvertiseData(const u8* data, uint16_t size) {
+ResultCode LANDiscovery::setAdvertiseData(const u8* data, uint16_t size) {
     if (size > AdvertiseDataSizeMax) {
-        // return MAKERESULT(ModuleID, 10);
+        return LDN_ERR_10;
     }
 
     if (size > 0 && data != nullptr) {
@@ -197,7 +198,7 @@ int LANDiscovery::setAdvertiseData(const u8* data, uint16_t size) {
 
     this->updateNodes();
 
-    return 0;
+    return RESULT_SUCCESS;
 }
 
 int LANDiscovery::initNetworkInfo() {
@@ -359,6 +360,7 @@ void LANDiscovery::Worker(void* args) {
 ResultCode LANDiscovery::scan(NetworkInfo* pOutNetwork, u16* count, ScanFilter filter) {
     /*this->udp->scanResults.clear();
 
+    //TODO: Probably this is the problem
     int len = this->udp->sendBroadcast(LANPacketType::Scan);
     if (len < 0) {
         return LDN_ERR_20;

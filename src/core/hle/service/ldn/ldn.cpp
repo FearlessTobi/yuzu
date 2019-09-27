@@ -118,13 +118,13 @@ public:
             {102, &IUserLocalCommunicationService::Scan, "Scan"},
             {103, nullptr, "ScanPrivate"},
             {104, nullptr, "SetWirelessControllerRestriction"},
-            {200, nullptr, "OpenAccessPoint"},
+            {200, &IUserLocalCommunicationService::OpenAccessPoint, "OpenAccessPoint"},
             {201, nullptr, "CloseAccessPoint"},
-            {202, nullptr, "CreateNetwork"},
+            {202, &IUserLocalCommunicationService::CreateNetwork, "CreateNetwork"},
             {203, nullptr, "CreateNetworkPrivate"},
             {204, nullptr, "DestroyNetwork"},
             {205, nullptr, "Reject"},
-            {206, nullptr, "SetAdvertiseData"},
+            {206, &IUserLocalCommunicationService::SetAdvertiseData, "SetAdvertiseData"},
             {207, nullptr, "SetStationAcceptPolicy"},
             {208, nullptr, "AddAcceptFilterEntry"},
             {209, nullptr, "ClearAcceptFilter"},
@@ -236,7 +236,51 @@ public:
         rb.Push(lanDiscovery.closeStation());
     }
 
-    //TODO: Rocket League: 'SetSockOpt' when creating Lobby
+    void OpenAccessPoint(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(lanDiscovery.openAccessPoint());
+    }
+
+    void SetAdvertiseData(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        IPC::ResponseBuilder rb{ctx, 2};
+
+        std::vector<u8> data = ctx.ReadBuffer();
+
+        // TODO: Correct Number
+        rb.Push(lanDiscovery.setAdvertiseData(data.data(), sizeof(data)));
+    }
+
+    void CreateNetwork(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        IPC::RequestParser rp{ctx};
+        const auto data{rp.PopRaw<CreateNetworkConfig>()};
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(lanDiscovery.createNetwork(&data.securityConfig, &data.userConfig,
+                                           &data.networkConfig));
+    }
+
+    void GetIpv4Address(Kernel::HLERequestContext& ctx) {
+        int rc = 0;
+        // ipinfoGetIpConfig(address.GetPointer(), netmask.GetPointer());
+
+        LOG_CRITICAL(Service_LDN, "STUBBED called");
+        // 0x{} 0x{}", address.GetValue(), netmask.GetValue());
+
+        IPC::ResponseBuilder rb{ctx, 4};
+        rb.Push(rc);
+
+        // TODO: Unstub
+        rb.Push(0);
+        rb.Push(0);
+    }
+
+    // TODO: Rocket League: 'SetSockOpt' when creating Lobby
 
 private:
     LANDiscovery lanDiscovery;
