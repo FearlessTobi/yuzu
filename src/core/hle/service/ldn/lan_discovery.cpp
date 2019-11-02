@@ -28,6 +28,16 @@ constexpr ResultCode LDN_ERR_6{ErrorModule::LDN, 6};
 constexpr ResultCode LDN_ERR_7{ErrorModule::LDN, 7};
 constexpr ResultCode LDN_ERR_8{ErrorModule::LDN, 8};
 
+ResultCode ipinfoGetIpConfig(u32* ip) {
+    // TODO: hardcoded
+    *ip = 1467670916;
+    return RESULT_SUCCESS;
+}
+
+ResultCode ipinfoGetIpConfig(u32* ip, u32* netmask) {
+    return ipinfoGetIpConfig(ip);
+}
+
 int LanStation::onRead() {
     if (!this->socket) {
         LOG_CRITICAL(Service_LDN, "Nullptr {}", this->nodeId);
@@ -140,8 +150,8 @@ void LDTcpSocket::onClose() {
 u32 LDUdpSocket::getBroadcast() {
     u32 address;
     u32 netmask;
-    int rc = 0; // ipinfoGetIpConfig(&address, &netmask);
-    if (rc != 0) {
+    ResultCode rc = ipinfoGetIpConfig(&address, &netmask);
+    if (rc != RESULT_SUCCESS) {
         LOG_CRITICAL(Service_LDN, "Broadcast failed to get ip");
         return 0xFFFFFFFF;
     }
@@ -235,7 +245,7 @@ ResultCode LANDiscovery::getFakeMac(MacAddress* mac) {
     mac->raw[1] = 0x00;
 
     u32 ip;
-    ResultCode rc = RESULT_SUCCESS; // ipinfoGetIpConfig(&ip);
+    ResultCode rc = ipinfoGetIpConfig(&ip);
     if (rc == RESULT_SUCCESS) {
         memcpy(mac->raw + 2, &ip, sizeof(ip));
     }
@@ -530,8 +540,7 @@ ResultCode LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork, NodeLatestUpda
 ResultCode LANDiscovery::getNodeInfo(NodeInfo* node, const UserConfig* userConfig,
                                      u16 localCommunicationVersion) {
     u32 ipAddress = 0;
-    ResultCode rc = RESULT_SUCCESS;
-    // ipinfoGetIpConfig(&ipAddress);
+    ResultCode rc = ipinfoGetIpConfig(&ipAddress);
     if (rc != RESULT_SUCCESS) {
         return rc;
     }

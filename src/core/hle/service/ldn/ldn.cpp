@@ -264,19 +264,29 @@ public:
                                            &data.networkConfig));
     }
 
-    void GetIpv4Address(Kernel::HLERequestContext& ctx) {
-        int rc = 0;
-        // ipinfoGetIpConfig(address.GetPointer(), netmask.GetPointer());
+    ResultCode ipinfoGetIpConfig(u32* ip) {
+        // TODO: hardcoded
+        *ip = 1467670916;
+        return RESULT_SUCCESS;
+    }
 
-        LOG_CRITICAL(Service_LDN, "STUBBED called");
-        // 0x{} 0x{}", address.GetValue(), netmask.GetValue());
+    ResultCode ipinfoGetIpConfig(u32* ip, u32* netmask) {
+        return ipinfoGetIpConfig(ip);
+    }
+
+    void GetIpv4Address(Kernel::HLERequestContext& ctx) {
+        u32 address = 0;
+        u32 netmask = 0;
+
+        ResultCode rc = ipinfoGetIpConfig(&address, &netmask);
+
+        LOG_CRITICAL(Service_LDN, "STUBBED called address {} netmask {}", address, netmask);
 
         IPC::ResponseBuilder rb{ctx, 4};
         rb.Push(rc);
 
-        // TODO: Unstub
-        rb.Push(0);
-        rb.Push(0);
+        rb.Push(address);
+        rb.Push(netmask);
     }
 
     void GetSecurityParameter(Kernel::HLERequestContext& ctx) {
