@@ -28,15 +28,40 @@ constexpr ResultCode LDN_ERR_6{ErrorModule::LDN, 6};
 constexpr ResultCode LDN_ERR_7{ErrorModule::LDN, 7};
 constexpr ResultCode LDN_ERR_8{ErrorModule::LDN, 8};
 
-ResultCode ipinfoGetIpConfig(u32* ip) {
-    // TODO: hardcoded
-    *ip = 1467670916;
+// this gets us a different error
+ResultCode ipinfoGetIpConfig(u32* address, u32* netmask) {
+    struct {
+        u8 _unk;
+        u32 address;
+        u32 netmask;
+        u32 gateway;
+    } resp;
+
+    // TODO: Unstub
+    resp.address = 1467674044;
+    resp.netmask = 4294967040;
+    resp.gateway = 3232281089; // unused
+
+    *address = ntohl(resp.address);
+    *netmask = ntohl(resp.netmask);
+
+    return RESULT_SUCCESS;
+}
+
+ResultCode ipinfoGetIpConfig(u32* address) {
+    u32 netmask;
+    return ipinfoGetIpConfig(address, &netmask);
+}
+
+/*ResultCode ipinfoGetIpConfig(u32* ip) {
+    // TODO: hardcoded (inet_aton)
+    *ip = 1467674044;
     return RESULT_SUCCESS;
 }
 
 ResultCode ipinfoGetIpConfig(u32* ip, u32* netmask) {
     return ipinfoGetIpConfig(ip);
-}
+}*/
 
 int LanStation::onRead() {
     if (!this->socket) {

@@ -381,6 +381,7 @@ public:
         // clang-format off
         static const FunctionInfo functions[] = {
             {0, &LDNU::CreateUserLocalCommunicationService, "CreateUserLocalCommunicationService"},
+            {65000, &LDNU::CreateLdnMitmConfigService, "CreateLdnMitmConfigService"},
         };
         // clang-format on
 
@@ -393,6 +394,54 @@ public:
         IPC::ResponseBuilder rb{ctx, 2, 0, 1};
         rb.Push(RESULT_SUCCESS);
         rb.PushIpcInterface<IUserLocalCommunicationService>();
+    }
+
+    struct LdnMitmVersion {
+        char raw[32];
+    };
+
+    class LdnConfig {
+    private:
+        enum class CommandId {
+            SaveLogToFile = 65000,
+            GetVersion = 65001,
+            GetLogging = 65002,
+            SetLogging = 65003,
+            GetEnabled = 65004,
+            SetEnabled = 65005,
+        };
+
+    public:
+        static bool getEnabled() {
+            return true;
+        }
+
+    protected:
+        static std::atomic_bool LdnEnabled;
+        /*ResultCode SaveLogToFile();
+        ResultCode GetVersion(sf::Out<LdnMitmVersion> version);
+        ResultCode GetLogging(sf::Out<u32> enabled);
+        ResultCode SetLogging(u32 enabled);
+        ResultCode GetEnabled(sf::Out<u32> enabled);
+        ResultCode SetEnabled(u32 enabled);
+    public:
+        DEFINE_SERVICE_DISPATCH_TABLE {
+            MAKE_SERVICE_COMMAND_META(SaveLogToFile),
+            MAKE_SERVICE_COMMAND_META(GetVersion),
+            MAKE_SERVICE_COMMAND_META(GetLogging),
+            MAKE_SERVICE_COMMAND_META(SetLogging),
+            MAKE_SERVICE_COMMAND_META(GetEnabled),
+            MAKE_SERVICE_COMMAND_META(SetEnabled),
+        };*/
+    };
+
+    void CreateLdnMitmConfigService(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        IPC::ResponseBuilder rb{ctx, 2 + 0x30, 0, 1};
+        rb.Push(RESULT_SUCCESS);
+        LdnConfig ldn_config{};
+        rb.PushRaw<LdnConfig>(ldn_config);
     }
 };
 
