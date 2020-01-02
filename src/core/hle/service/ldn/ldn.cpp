@@ -351,8 +351,7 @@ public:
 private:
     LANDiscovery lanDiscovery;
     Kernel::EventPair state_event = Kernel::WritableEvent::CreateEventPair(
-        Core::System::GetInstance().Kernel(), Kernel::ResetType::Automatic,
-        "IUserLocalCommunicationService:StateEvent");
+        Core::System::GetInstance().Kernel(), "IUserLocalCommunicationService:StateEvent");
 };
 
 class LDNS final : public ServiceFramework<LDNS> {
