@@ -14,6 +14,11 @@
 #include "core/hle/service/ldn/ldn_types.h"
 #include "core/hle/service/sm/sm.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
 namespace Service::LDN {
 
 class IMonitorService final : public ServiceFramework<IMonitorService> {
@@ -148,6 +153,30 @@ public:
         // If we just pass result error then it will stop and maybe try again and again.
         IPC::ResponseBuilder rb{ctx, 2};
         rb.Push(RESULT_UNKNOWN);
+	}
+
+    ResultCode ipinfoGetIpConfig(u32* address, u32* netmask) {
+        struct {
+            u8 _unk;
+            u32 address;
+            u32 netmask;
+            u32 gateway;
+        } resp;
+
+        // TODO: Unstub
+        resp.address = 1467674044;
+        resp.netmask = 4294967040;
+        resp.gateway = 3232281089; // unused
+
+        *address = ntohl(resp.address);
+        *netmask = ntohl(resp.netmask);
+
+        return RESULT_SUCCESS;
+    }
+
+    ResultCode ipinfoGetIpConfig(u32* address) {
+        u32 netmask;
+        return ipinfoGetIpConfig(address, &netmask);
     }
 
     void onEventFired() {
@@ -160,6 +189,10 @@ public:
 
         LOG_CRITICAL(Service_LDN, "called");
 
+        if (result_code != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         IPC::ResponseBuilder rb{ctx, 2};
         rb.Push(result_code);
     }
@@ -169,7 +202,11 @@ public:
 
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(RESULT_SUCCESS);
-        rb.Push<u32>(static_cast<u32>(this->lanDiscovery.getState()));
+
+        u32 state = static_cast<u32>(lanDiscovery.getState());
+
+        rb.Push(RESULT_SUCCESS);
+        rb.Push<u32>(state);
     }
 
     void AttachStateChangeEvent(Kernel::HLERequestContext& ctx) {
@@ -191,8 +228,14 @@ public:
     void OpenStation(Kernel::HLERequestContext& ctx) {
         LOG_CRITICAL(Service_LDN, "called");
 
+        ResultCode rc = lanDiscovery.openStation();
+
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         IPC::ResponseBuilder rb{ctx, 2};
-        rb.Push(lanDiscovery.openStation());
+        rb.Push(rc);
     }
 
     void Scan(Kernel::HLERequestContext& ctx) {
@@ -203,13 +246,15 @@ public:
         const auto channel{rp.Pop<u16>()};
         const auto filter{rp.PopRaw<ScanFilter>()};
 
-        ResultCode rc = RESULT_SUCCESS;
-
         NetworkInfo info{};
 
         // TODO: Stubbed
         u16 count = 0;
-        rc = lanDiscovery.scan(&info, &count, filter);
+        ResultCode rc = lanDiscovery.scan(&info, &count, filter);
+
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
 
         std::array<u8, sizeof(info)> out_buf;
         std::memcpy(&out_buf, &info, sizeof(info));
@@ -224,22 +269,39 @@ public:
     void Finalize(Kernel::HLERequestContext& ctx) {
         LOG_CRITICAL(Service_LDN, "called");
 
+        int rc = lanDiscovery.finalize();
+
+        if (rc != 0) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         IPC::ResponseBuilder rb{ctx, 2};
-        rb.Push(lanDiscovery.finalize());
+        rb.Push(rc);
     }
 
     void CloseStation(Kernel::HLERequestContext& ctx) {
         LOG_CRITICAL(Service_LDN, "called");
 
+        ResultCode rc = lanDiscovery.closeStation();
+
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         IPC::ResponseBuilder rb{ctx, 2};
-        rb.Push(lanDiscovery.closeStation());
+        rb.Push(rc);
     }
 
     void OpenAccessPoint(Kernel::HLERequestContext& ctx) {
         LOG_CRITICAL(Service_LDN, "called");
 
+        ResultCode rc = lanDiscovery.openAccessPoint();
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         IPC::ResponseBuilder rb{ctx, 2};
-        rb.Push(lanDiscovery.openAccessPoint());
+        rb.Push(rc);
     }
 
     void SetAdvertiseData(Kernel::HLERequestContext& ctx) {
@@ -249,8 +311,14 @@ public:
 
         std::vector<u8> data = ctx.ReadBuffer();
 
+        ResultCode rc = lanDiscovery.setAdvertiseData(data.data(), sizeof(data));
+
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         // TODO: Correct Number
-        rb.Push(lanDiscovery.setAdvertiseData(data.data(), sizeof(data)));
+        rb.Push(rc);
     }
 
     void CreateNetwork(Kernel::HLERequestContext& ctx) {
@@ -259,19 +327,15 @@ public:
         IPC::RequestParser rp{ctx};
         const auto data{rp.PopRaw<CreateNetworkConfig>()};
 
+        ResultCode rc =
+            lanDiscovery.createNetwork(&data.securityConfig, &data.userConfig, &data.networkConfig);
+
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         IPC::ResponseBuilder rb{ctx, 2};
-        rb.Push(lanDiscovery.createNetwork(&data.securityConfig, &data.userConfig,
-                                           &data.networkConfig));
-    }
-
-    ResultCode ipinfoGetIpConfig(u32* ip) {
-        // TODO: hardcoded
-        *ip = 1467670916;
-        return RESULT_SUCCESS;
-    }
-
-    ResultCode ipinfoGetIpConfig(u32* ip, u32* netmask) {
-        return ipinfoGetIpConfig(ip);
+        rb.Push(rc);
     }
 
     void GetIpv4Address(Kernel::HLERequestContext& ctx) {
@@ -300,6 +364,10 @@ public:
             NetworkInfo2SecurityParameter(&info, &data);
         }
 
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
         IPC::ResponseBuilder rb{ctx, 2 + 0x20};
         rb.Push(rc);
         rb.PushRaw<SecurityParameter>(data);
@@ -316,6 +384,10 @@ public:
 
         LOG_CRITICAL(Service_LDN, "channel: {}", info.common.channel);
         LOG_CRITICAL(Service_LDN, "linkLevel: {}", info.common.linkLevel);
+
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
 
         ctx.WriteBuffer(out_buf);
 
@@ -340,6 +412,10 @@ public:
 
         LOG_CRITICAL(Service_LDN, "channel: {}", info.common.channel);
         LOG_CRITICAL(Service_LDN, "linkLevel: {}", info.common.linkLevel);
+
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
 
         ctx.WriteBuffer(out_buf_0);
         ctx.WriteBuffer(out_buf_1);

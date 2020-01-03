@@ -493,14 +493,14 @@ int LANDiscovery::loopPoll() {
     }
 
     std::lock_guard<std::mutex> lock(this->pollMutex);
-    int nfds = 2 + StationCountMax;
-    /*Pollable* fds[nfds];
+    const int nfds = 2 + StationCountMax;
+    Pollable* fds[nfds];
     fds[0] = this->udp.get();
     fds[1] = this->tcp.get();
     for (int i = 0; i < StationCountMax; i++) {
         fds[2 + i] = this->stations.data() + i;
     }
-    rc = Pollable::Poll(fds, nfds);*/
+    rc = Pollable::Poll(fds, nfds);
 
     return rc;
 }
@@ -510,17 +510,16 @@ LANDiscovery::~LANDiscovery() {
 }
 
 void LANDiscovery::worker() {
-    /*this->stop = false;
+    this->stop = false;
     while (!this->stop) {
-
         int rc = loopPoll();
         if (rc < 0) {
             break;
         }
-        svcSleepThread(0);
+        //svcSleepThread(0);
     }
     LOG_CRITICAL(Service_LDN, "Worker exit");
-    svcExitThread();*/
+    //svcExitThread();
 }
 
 ResultCode LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork) {
@@ -749,7 +748,7 @@ ResultCode LANDiscovery::connect(NetworkInfo* networkInfo, UserConfig* userConfi
 int LANDiscovery::finalize() {
     if (this->inited) {
         this->stop = true;
-        // this->workerThread.Join();
+        //this->workerThread.Join();
         this->udp.reset();
         this->tcp.reset();
         this->resetStations();
@@ -779,7 +778,7 @@ ResultCode LANDiscovery::initialize(LanEventFunc lanEvent, bool listening) {
         return rc;
     }
 
-    /* if (R_FAILED(this->workerThread.Initialize(&Worker, this, 0x4000, 0x15, 2))) {
+    /*if (R_FAILED(this->workerThread.Initialize(&Worker, this, 0x4000, 0x15, 2))) {
          LOG_CRITICAL(Service_LDN, "LANDiscovery Failed to threadCreate");
          return ResultCode(0xF601);
      }
@@ -787,6 +786,7 @@ ResultCode LANDiscovery::initialize(LanEventFunc lanEvent, bool listening) {
          LOG_CRITICAL(Service_LDN, "LANDiscovery Failed to threadStart");
          return ResultCode(0xF601);
      }*/
+
     this->setState(CommState::Initialized);
 
     this->inited = true;
