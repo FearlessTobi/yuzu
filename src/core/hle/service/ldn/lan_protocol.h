@@ -2,6 +2,12 @@
 
 #include <functional>
 #include "common/common_types.h"
+#include "common/logging/log.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
 
 enum class LANPacketType : u8 {
     Scan,
@@ -45,8 +51,18 @@ protected:
     virtual int sendto(const void* buf, size_t len, struct sockaddr_in* addr) = 0;
 
 public:
-    LanSocket(int fd) : fd(fd), recvSize(0){};
+    LanSocket(int fd) : fd(fd), recvSize(0) {
+        WSADATA wsadata;
+
+        int error = WSAStartup(0x0202, &wsadata);
+        if (error == 0) {
+            LOG_ERROR(Frontend, "Init Success!");
+        } else {
+            LOG_ERROR(Frontend, "Init error!");
+        }
+    };
     ~LanSocket();
+    int GetLastError();
     int sendPacket(LANPacketType type, const void* data, size_t size);
     int sendPacket(LANPacketType type, const void* data, size_t size, struct sockaddr_in* addr);
     int recvPacket(MessageCallback callback);

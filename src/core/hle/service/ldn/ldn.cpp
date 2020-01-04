@@ -21,6 +21,9 @@
 
 namespace Service::LDN {
 
+// TODO: Problems: Scan is broken? IP Getting is Ultra broken? Port might be wrong? CreateNetwork
+// returns errors? SockOpt broken? ...? BSD UNIMPLEMENTED (Bind impl wrong)!
+
 class IMonitorService final : public ServiceFramework<IMonitorService> {
 public:
     explicit IMonitorService() : ServiceFramework{"IMonitorService"} {
@@ -123,10 +126,10 @@ public:
             {103, nullptr, "ScanPrivate"},
             {104, nullptr, "SetWirelessControllerRestriction"},
             {200, &IUserLocalCommunicationService::OpenAccessPoint, "OpenAccessPoint"},
-            {201, nullptr, "CloseAccessPoint"},
+            {201, &IUserLocalCommunicationService::CloseAccessPoint, "CloseAccessPoint"},
             {202, &IUserLocalCommunicationService::CreateNetwork, "CreateNetwork"},
             {203, nullptr, "CreateNetworkPrivate"},
-            {204, nullptr, "DestroyNetwork"},
+            {204, &IUserLocalCommunicationService::DestroyNetwork, "DestroyNetwork"},
             {205, nullptr, "Reject"},
             {206, &IUserLocalCommunicationService::SetAdvertiseData, "SetAdvertiseData"},
             {207, nullptr, "SetStationAcceptPolicy"},
@@ -155,8 +158,8 @@ public:
         } resp;
 
         // TODO: Unstub
-        resp.address = 1467674044;
-        resp.netmask = 4294967040;
+        resp.address = 2505789633; // some random server
+        resp.netmask = 4294967040; // leave it tobi
         resp.gateway = 3232281089; // unused
 
         *address = ntohl(resp.address);
@@ -192,7 +195,6 @@ public:
         LOG_CRITICAL(Service_LDN, "called");
 
         IPC::ResponseBuilder rb{ctx, 3};
-        rb.Push(RESULT_SUCCESS);
 
         u32 state = static_cast<u32>(lanDiscovery.getState());
 
@@ -240,11 +242,13 @@ public:
         NetworkInfo info{};
 
         // TODO: Stubbed
-        u16 count = 0;
+        u16 count = 5;
+        LOG_CRITICAL(Frontend, "count: ", count);
         ResultCode rc = lanDiscovery.scan(&info, &count, filter);
 
         if (rc != RESULT_SUCCESS) {
-            LOG_ERROR(Service_LDN, "Error!");
+            // Error 20 gets returned
+            LOG_ERROR(Service_LDN, "Error! {}", rc.description);
         }
 
         std::array<u8, sizeof(info)> out_buf;
@@ -295,6 +299,18 @@ public:
         rb.Push(rc);
     }
 
+    void CloseAccessPoint(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        ResultCode rc = lanDiscovery.closeAccessPoint();
+        if (rc != RESULT_SUCCESS) {
+            LOG_ERROR(Service_LDN, "Error!");
+        }
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(rc);
+    }
+
     void SetAdvertiseData(Kernel::HLERequestContext& ctx) {
         LOG_CRITICAL(Service_LDN, "called");
 
@@ -322,7 +338,20 @@ public:
             lanDiscovery.createNetwork(&data.securityConfig, &data.userConfig, &data.networkConfig);
 
         if (rc != RESULT_SUCCESS) {
-            LOG_ERROR(Service_LDN, "Error!");
+            LOG_ERROR(Service_LDN, "Error! {}", rc.description);
+        }
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(rc);
+    }
+
+    void DestroyNetwork(Kernel::HLERequestContext& ctx) {
+        LOG_CRITICAL(Service_LDN, "called");
+
+        int rc = lanDiscovery.destroyNetwork();
+
+        if (rc != 0) {
+            LOG_ERROR(Service_LDN, "Error! {}", rc);
         }
 
         IPC::ResponseBuilder rb{ctx, 2};
@@ -373,8 +402,7 @@ public:
         std::array<u8, sizeof(info)> out_buf;
         std::memcpy(&out_buf, &info, sizeof(info));
 
-        LOG_CRITICAL(Service_LDN, "channel: {}", info.common.channel);
-        LOG_CRITICAL(Service_LDN, "linkLevel: {}", info.common.linkLevel);
+        // TODO: Correct this?
 
         if (rc != RESULT_SUCCESS) {
             LOG_ERROR(Service_LDN, "Error!");

@@ -107,7 +107,8 @@ public:
 
 class LANDiscovery {
 public:
-    static const int DefaultPort = 11452;
+    // TODO
+    static const int DefaultPort = 11451;
     static const char* FakeSsid;
     typedef std::function<int(LANPacketType, const void*, size_t)> ReplyFunc;
     typedef std::function<void()> LanEventFunc;

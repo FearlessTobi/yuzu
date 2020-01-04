@@ -7,6 +7,11 @@
 #include "core/hle/kernel/hle_ipc.h"
 #include "core/hle/service/service.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
 namespace Service::Sockets {
 
 class BSD final : public ServiceFramework<BSD> {
@@ -15,6 +20,8 @@ public:
     ~BSD() override;
 
 private:
+    void WriteBsdResult(Kernel::HLERequestContext& ctx, int result, int errorCode = 0);
+
     void RegisterClient(Kernel::HLERequestContext& ctx);
     void StartMonitoring(Kernel::HLERequestContext& ctx);
     void Socket(Kernel::HLERequestContext& ctx);
