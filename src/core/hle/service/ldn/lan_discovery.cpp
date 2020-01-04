@@ -38,8 +38,8 @@ ResultCode ipinfoGetIpConfig(u32* address, u32* netmask) {
     } resp;
 
     // TODO: Unstub
-    resp.address = 1467674044;
-    resp.netmask = 4294967040;
+    resp.address = 2505789633; // some random server
+    resp.netmask = 4294967040; // leave it tobi
     resp.gateway = 3232281089; // unused
 
     *address = ntohl(resp.address);
@@ -282,16 +282,19 @@ ResultCode LANDiscovery::setSocketOpts(int fd) {
     int rc;
 
     {
-        int b = 1;
-        rc = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (const char*)&b, sizeof(b));
-        if (rc != 0) {
-            return LDN_ERR_4;
+        BOOL bOptVal = TRUE;
+        int bOptLen = sizeof(BOOL);
+
+        rc = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen);
+        if (rc == SOCKET_ERROR) {
+            LOG_CRITICAL(Frontend, "ERROR! {}", WSAGetLastError()); // 10042
+            // return LDN_ERR_4;
         }
     }
     {
         int yes = 1;
         rc = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&yes, sizeof(yes));
-        if (rc != 0) {
+        if (rc == SOCKET_ERROR) {
             LOG_CRITICAL(Service_LDN, "SO_REUSEADDR failed");
             return LDN_ERR_5;
         }
@@ -315,14 +318,17 @@ ResultCode LANDiscovery::initTcp(bool listening) {
         addr.sin_addr.s_addr = htons(INADDR_ANY);
         addr.sin_port = htons(listenPort);
         if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+            LOG_CRITICAL(Frontend, "Bind failed!");
             return LDN_ERR_7;
         }
         if (listen(fd, 10) != 0) {
+            LOG_CRITICAL(Frontend, "Bind failed! Other error");
             return LDN_ERR_8;
         }
     }
     ResultCode rc = setSocketOpts(fd);
     if (rc != RESULT_SUCCESS) {
+        LOG_CRITICAL(Frontend, "setSocketOpts failed!");
         return rc;
     }
 
@@ -340,6 +346,7 @@ ResultCode LANDiscovery::initUdp(bool listening) {
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
+        LOG_CRITICAL(Frontend, "Socket init failed!");
         return LDN_ERR_1;
     }
     auto udpSocket = std::make_unique<LDUdpSocket>(fd, this);
@@ -349,11 +356,13 @@ ResultCode LANDiscovery::initUdp(bool listening) {
         addr.sin_addr.s_addr = htons(INADDR_ANY);
         addr.sin_port = htons(listenPort);
         if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+            LOG_CRITICAL(Frontend, "Bind failed!");
             return LDN_ERR_2;
         }
     }
     ResultCode rc = setSocketOpts(fd);
     if (rc != RESULT_SUCCESS) {
+        LOG_CRITICAL(Frontend, "setSocketOpts failed!");
         return rc;
     }
 
@@ -403,6 +412,8 @@ ResultCode LANDiscovery::scan(NetworkInfo* pOutNetwork, u16* count, ScanFilter f
     // TODO: Probably this is the problem
     int len = this->udp->sendBroadcast(LANPacketType::Scan);
     if (len < 0) {
+        int error = this->udp->GetLastError();
+        LOG_CRITICAL(Frontend, "Socket error! code : {}", error);
         return LDN_ERR_20;
     }
 
@@ -410,8 +421,15 @@ ResultCode LANDiscovery::scan(NetworkInfo* pOutNetwork, u16* count, ScanFilter f
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     int i = 0;
-    for (auto& item : this->udp->scanResults) {
+    auto results = this->udp->scanResults;
+    LOG_CRITICAL(Frontend, "Results Size: {}", results.size());
+    for (auto& item : results) {
+        LOG_WARNING(Frontend, "MAC: STUB");
+    }
+
+    for (auto& item : results) {
         if (i >= *count) {
+            // Here
             break;
         }
         auto& info = item.second;
@@ -516,10 +534,10 @@ void LANDiscovery::worker() {
         if (rc < 0) {
             break;
         }
-        //svcSleepThread(0);
+        // svcSleepThread(0);
     }
     LOG_CRITICAL(Service_LDN, "Worker exit");
-    //svcExitThread();
+    // svcExitThread();
 }
 
 ResultCode LANDiscovery::getNetworkInfo(NetworkInfo* pOutNetwork) {
@@ -748,7 +766,7 @@ ResultCode LANDiscovery::connect(NetworkInfo* networkInfo, UserConfig* userConfi
 int LANDiscovery::finalize() {
     if (this->inited) {
         this->stop = true;
-        //this->workerThread.Join();
+        // this->workerThread.Join();
         this->udp.reset();
         this->tcp.reset();
         this->resetStations();

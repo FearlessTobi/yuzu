@@ -203,6 +203,7 @@ void BSD::Accept(Kernel::HLERequestContext& ctx) {
 void BSD::Bind(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp{ctx};
     const s32 fd = rp.Pop<s32>();
+    LOG_WARNING(Service, "called");
 
     LOG_DEBUG(Service, "called. fd={} addrlen={}", fd, ctx.GetReadBufferSize());
 

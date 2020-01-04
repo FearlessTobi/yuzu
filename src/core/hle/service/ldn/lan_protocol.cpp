@@ -1,12 +1,6 @@
 #include <cstring>
 #include <memory>
-#include "common/logging/log.h"
 #include "core/hle/service/ldn/lan_protocol.h"
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
 
 #define POLL_UNKNOWN (~(POLLIN | POLLPRI | POLLOUT))
 // Only used when debuging
@@ -58,6 +52,7 @@ LanSocket::~LanSocket() {
 }
 
 void LanSocket::close() {
+    WSACleanup();
     if (this->fd != -1) {
         ::closesocket(this->fd);
         this->fd = -1;
@@ -152,6 +147,10 @@ int LanSocket::sendPacket(LANPacketType type, const void* data, size_t size) {
     return this->sendPacket(type, data, size, nullptr);
 }
 
+int LanSocket::GetLastError() {
+    return ::WSAGetLastError();
+}
+
 int LanSocket::sendPacket(LANPacketType type, const void* data, size_t size,
                           struct sockaddr_in* addr) {
     LANPacketHeader header;
@@ -177,6 +176,8 @@ int LanSocket::sendPacket(LANPacketType type, const void* data, size_t size,
     std::memcpy(buf, &header, sizeof(header));
 
     delete[] buf;
+
+    LOG_WARNING(Frontend, "Trying to send packet");
 
     return this->sendto(buf, header.length + sizeof(header), addr);
 }
@@ -216,8 +217,15 @@ int UdpLanSocketBase::sendBroadcast(LANPacketType type, const void* data, size_t
     struct sockaddr_in addr;
 
     addr.sin_family = AF_INET;
+
     addr.sin_addr.s_addr = htonl(this->getBroadcast());
+    LOG_CRITICAL(Frontend, "1 {}", addr.sin_addr.s_addr);
+
+    addr.sin_addr.s_addr = inet_addr("149.91.80.193");
+    LOG_CRITICAL(Frontend, "2 {}", addr.sin_addr.s_addr);
+
     addr.sin_port = htons(this->listenPort);
+    LOG_WARNING(Frontend, "Listen port: {}", this->listenPort);
 
     return this->sendPacket(type, data, size, &addr);
 }
