@@ -167,9 +167,10 @@ public:
         } resp;
 
         // TODO: Unstub
-        resp.address = 2505789633; // some random server
-        resp.netmask = 4294967040; // leave it tobi
-        resp.gateway = 3232281089; // unused
+        resp.address = inet_addr("10.13.0.2");
+        // resp.address = 2130706433; // 127.0.0.1
+        resp.netmask = inet_addr("255.255.0.0"); // leave it tobi
+        resp.gateway = inet_addr("10.13.37.1");  // unused
 
         *address = ntohl(resp.address);
         *netmask = ntohl(resp.netmask);
