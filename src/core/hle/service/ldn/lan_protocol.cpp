@@ -104,6 +104,8 @@ int LanSocket::recvPartPacket(u8* buffer, size_t bufLen, struct sockaddr_in* add
 }
 
 int LanSocket::recvPacket(MessageCallback callback) {
+    LOG_WARNING(Frontend, "Receiving packet");
+
     constexpr int HeaderSize = sizeof(LANPacketHeader);
     u8 buffer[BufferSize];
     u8 decompressBuffer[BufferSize];
@@ -153,6 +155,8 @@ int LanSocket::GetLastError() {
 
 int LanSocket::sendPacket(LANPacketType type, const void* data, size_t size,
                           struct sockaddr_in* addr) {
+    LOG_WARNING(Frontend, "Sending packet");
+
     LANPacketHeader header;
     this->prepareHeader(header, type);
     if (data == NULL) {
@@ -221,7 +225,8 @@ int UdpLanSocketBase::sendBroadcast(LANPacketType type, const void* data, size_t
     addr.sin_addr.s_addr = htonl(this->getBroadcast());
     LOG_CRITICAL(Frontend, "1 {}", addr.sin_addr.s_addr);
 
-    addr.sin_addr.s_addr = inet_addr("149.91.80.193");
+    // TODO
+    addr.sin_addr.s_addr = inet_addr("10.13.0.2"); // THIS IS THE ONLY PLACE THAT MATTERS
     LOG_CRITICAL(Frontend, "2 {}", addr.sin_addr.s_addr);
 
     addr.sin_port = htons(this->listenPort);

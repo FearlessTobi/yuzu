@@ -38,9 +38,10 @@ ResultCode ipinfoGetIpConfig(u32* address, u32* netmask) {
     } resp;
 
     // TODO: Unstub
-    resp.address = 2505789633; // some random server
-    resp.netmask = 4294967040; // leave it tobi
-    resp.gateway = 3232281089; // unused
+    resp.address = inet_addr("10.13.0.2");
+    // resp.address = 2130706433; // 127.0.0.1
+    resp.netmask = inet_addr("255.255.0.0"); // leave it tobi
+    resp.gateway = inet_addr("10.13.37.1");  // unused
 
     *address = ntohl(resp.address);
     *netmask = ntohl(resp.netmask);
@@ -52,16 +53,6 @@ ResultCode ipinfoGetIpConfig(u32* address) {
     u32 netmask;
     return ipinfoGetIpConfig(address, &netmask);
 }
-
-/*ResultCode ipinfoGetIpConfig(u32* ip) {
-    // TODO: hardcoded (inet_aton)
-    *ip = 1467674044;
-    return RESULT_SUCCESS;
-}
-
-ResultCode ipinfoGetIpConfig(u32* ip, u32* netmask) {
-    return ipinfoGetIpConfig(ip);
-}*/
 
 int LanStation::onRead() {
     if (!this->socket) {
@@ -281,11 +272,12 @@ ResultCode LANDiscovery::getFakeMac(MacAddress* mac) {
 ResultCode LANDiscovery::setSocketOpts(int fd) {
     int rc;
 
-    {
-        BOOL bOptVal = TRUE;
-        int bOptLen = sizeof(BOOL);
+    LOG_WARNING(Frontend, "Receiving packet");
 
-        rc = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (char*)&bOptVal, bOptLen);
+    {
+        int yess = 1;
+
+        rc = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (const char*)&yess, sizeof(yess));
         if (rc == SOCKET_ERROR) {
             LOG_CRITICAL(Frontend, "ERROR! {}", WSAGetLastError()); // 10042
             // return LDN_ERR_4;
@@ -314,6 +306,12 @@ ResultCode LANDiscovery::initTcp(bool listening) {
     auto tcpSocket = std::make_unique<LDTcpSocket>(fd, this);
 
     if (listening) {
+        ResultCode rc = setSocketOpts(fd);
+        if (rc != RESULT_SUCCESS) {
+            LOG_CRITICAL(Frontend, "setSocketOpts failed!");
+            return rc;
+        }
+
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = htons(INADDR_ANY);
         addr.sin_port = htons(listenPort);
@@ -325,11 +323,6 @@ ResultCode LANDiscovery::initTcp(bool listening) {
             LOG_CRITICAL(Frontend, "Bind failed! Other error");
             return LDN_ERR_8;
         }
-    }
-    ResultCode rc = setSocketOpts(fd);
-    if (rc != RESULT_SUCCESS) {
-        LOG_CRITICAL(Frontend, "setSocketOpts failed!");
-        return rc;
     }
 
     {
@@ -352,6 +345,12 @@ ResultCode LANDiscovery::initUdp(bool listening) {
     auto udpSocket = std::make_unique<LDUdpSocket>(fd, this);
 
     if (listening) {
+        ResultCode rc = setSocketOpts(fd);
+        if (rc != RESULT_SUCCESS) {
+            LOG_CRITICAL(Frontend, "setSocketOpts failed!");
+            return rc;
+        }
+
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = htons(INADDR_ANY);
         addr.sin_port = htons(listenPort);
@@ -359,11 +358,6 @@ ResultCode LANDiscovery::initUdp(bool listening) {
             LOG_CRITICAL(Frontend, "Bind failed!");
             return LDN_ERR_2;
         }
-    }
-    ResultCode rc = setSocketOpts(fd);
-    if (rc != RESULT_SUCCESS) {
-        LOG_CRITICAL(Frontend, "setSocketOpts failed!");
-        return rc;
     }
 
     {
