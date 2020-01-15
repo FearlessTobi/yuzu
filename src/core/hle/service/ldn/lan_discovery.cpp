@@ -38,8 +38,8 @@ ResultCode ipinfoGetIpConfig(u32* address, u32* netmask) {
     } resp;
 
     // TODO: Unstub
-    resp.address = inet_addr("10.13.0.2");
-    // resp.address = 2130706433; // 127.0.0.1
+     resp.address = inet_addr("10.13.0.2");
+    //resp.address = inet_addr("127.0.0.1");
     resp.netmask = inet_addr("255.255.0.0"); // leave it tobi
     resp.gateway = inet_addr("10.13.37.1");  // unused
 
