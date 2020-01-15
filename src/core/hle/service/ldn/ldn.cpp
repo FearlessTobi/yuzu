@@ -168,7 +168,7 @@ public:
 
         // TODO: Unstub
         resp.address = inet_addr("10.13.0.2");
-        // resp.address = 2130706433; // 127.0.0.1
+        // resp.address = inet_addr("127.0.0.1");
         resp.netmask = inet_addr("255.255.0.0"); // leave it tobi
         resp.gateway = inet_addr("10.13.37.1");  // unused
 
@@ -242,29 +242,24 @@ public:
     }
 
     void Scan(Kernel::HLERequestContext& ctx) {
-        // TODO: Check IPC shit if something breaks
         LOG_CRITICAL(Service_LDN, "called");
 
         IPC::RequestParser rp{ctx};
         const auto channel{rp.Pop<u16>()};
         const auto filter{rp.PopRaw<ScanFilter>()};
 
-        NetworkInfo info{};
+        u16 count = ctx.GetWriteBufferSize() / sizeof(NetworkInfo);
+        LOG_CRITICAL(Frontend, "count: {}", count);
 
-        // TODO: Stubbed
-        u16 count = 5;
-        LOG_CRITICAL(Frontend, "count: ", count);
-        ResultCode rc = lanDiscovery.scan(&info, &count, filter);
+        std::vector<NetworkInfo> info(count);
+        ResultCode rc = lanDiscovery.scan(info.data(), &count, filter);
 
         if (rc != RESULT_SUCCESS) {
             // Error 20 gets returned
             LOG_ERROR(Service_LDN, "Error! {}", rc.description);
         }
 
-        std::array<u8, sizeof(info)> out_buf;
-        std::memcpy(&out_buf, &info, sizeof(info));
-
-        ctx.WriteBuffer(out_buf);
+        ctx.WriteBuffer(info);
 
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(rc);
