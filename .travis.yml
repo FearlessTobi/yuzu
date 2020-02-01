@@ -22,8 +22,7 @@ matrix:
       addons:
         apt:
           packages:
-            - python-dev
-            - python3-dev
+            - python2.7
       install: "./.travis/transifex/deps.sh"
       script: "./.travis/transifex/build.sh"
 
