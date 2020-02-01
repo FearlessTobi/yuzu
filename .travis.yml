@@ -19,6 +19,10 @@ matrix:
       sudo: required
       dist: trusty
       services: docker
+     addons:
+        apt:
+          packages:
+            - python3
       install: "./.travis/transifex/deps.sh"
       script: "./.travis/transifex/build.sh"
 
