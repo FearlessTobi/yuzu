@@ -4,11 +4,14 @@
 
 #include <cinttypes>
 #include <memory>
-#include <dynarmic/A64/a64.h>
-#include <dynarmic/A64/config.h>
+#include <dynarmic/A32/a32.h>
+#include <dynarmic/A32/config.h>
+#include <dynarmic/A32/context.h>
 #include "common/logging/log.h"
 #include "common/microprofile.h"
+#include "common/swap.h"
 #include "core/arm/dynarmic/arm_dynarmic.h"
+#include "core/arm/dynarmic/arm_dynarmic_cp15.h"
 #include "core/core.h"
 #include "core/core_manager.h"
 #include "core/core_timing.h"
@@ -23,83 +26,61 @@
 
 namespace Core {
 
-using Vector = Dynarmic::A64::Vector;
-
-class ARM_Dynarmic_Callbacks : public Dynarmic::A64::UserCallbacks {
+class ARM_Dynarmic_Callbacks : public Dynarmic::A32::UserCallbacks {
 public:
     explicit ARM_Dynarmic_Callbacks(ARM_Dynarmic& parent) : parent(parent) {}
 
-    u8 MemoryRead8(u64 vaddr) override {
+    u8 MemoryRead8(u32 vaddr) override {
         return parent.system.Memory().Read8(vaddr);
     }
-    u16 MemoryRead16(u64 vaddr) override {
+    u16 MemoryRead16(u32 vaddr) override {
         return parent.system.Memory().Read16(vaddr);
     }
-    u32 MemoryRead32(u64 vaddr) override {
+    u32 MemoryRead32(u32 vaddr) override {
         return parent.system.Memory().Read32(vaddr);
     }
-    u64 MemoryRead64(u64 vaddr) override {
+    u64 MemoryRead64(u32 vaddr) override {
         return parent.system.Memory().Read64(vaddr);
     }
-    Vector MemoryRead128(u64 vaddr) override {
-        auto& memory = parent.system.Memory();
-        return {memory.Read64(vaddr), memory.Read64(vaddr + 8)};
-    }
 
-    void MemoryWrite8(u64 vaddr, u8 value) override {
+    void MemoryWrite8(u32 vaddr, u8 value) override {
         parent.system.Memory().Write8(vaddr, value);
     }
-    void MemoryWrite16(u64 vaddr, u16 value) override {
+    void MemoryWrite16(u32 vaddr, u16 value) override {
         parent.system.Memory().Write16(vaddr, value);
     }
-    void MemoryWrite32(u64 vaddr, u32 value) override {
+    void MemoryWrite32(u32 vaddr, u32 value) override {
         parent.system.Memory().Write32(vaddr, value);
     }
-    void MemoryWrite64(u64 vaddr, u64 value) override {
+    void MemoryWrite64(u32 vaddr, u64 value) override {
         parent.system.Memory().Write64(vaddr, value);
     }
-    void MemoryWrite128(u64 vaddr, Vector value) override {
-        auto& memory = parent.system.Memory();
-        memory.Write64(vaddr, value[0]);
-        memory.Write64(vaddr + 8, value[1]);
+
+    void InterpreterFallback(u32 pc, std::size_t num_instructions) override {
+        printf("Unicorn fallback @ 0x%08X for %d instructions (instr = {%08X})", pc,
+               num_instructions, MemoryReadCode(pc));
+
+        // ARM_Interface::ThreadContext ctx;
+        // parent.SaveContext(ctx);
+        // parent.inner_unicorn.LoadContext(ctx);
+        // parent.inner_unicorn.ExecuteInstructions(num_instructions);
+        // parent.inner_unicorn.SaveContext(ctx);
+        // parent.LoadContext(ctx);
+        // num_interpreted_instructions += num_instructions;
+
+        ASSERT(false);
     }
 
-    void InterpreterFallback(u64 pc, std::size_t num_instructions) override {
-        LOG_INFO(Core_ARM, "Unicorn fallback @ 0x{:X} for {} instructions (instr = {:08X})", pc,
-                 num_instructions, MemoryReadCode(pc));
-
-        ARM_Interface::ThreadContext ctx;
-        parent.SaveContext(ctx);
-        parent.inner_unicorn.LoadContext(ctx);
-        parent.inner_unicorn.ExecuteInstructions(num_instructions);
-        parent.inner_unicorn.SaveContext(ctx);
-        parent.LoadContext(ctx);
-        num_interpreted_instructions += num_instructions;
-    }
-
-    void ExceptionRaised(u64 pc, Dynarmic::A64::Exception exception) override {
+    void ExceptionRaised(u32 pc, Dynarmic::A32::Exception exception) override {
         switch (exception) {
-        case Dynarmic::A64::Exception::WaitForInterrupt:
-        case Dynarmic::A64::Exception::WaitForEvent:
-        case Dynarmic::A64::Exception::SendEvent:
-        case Dynarmic::A64::Exception::SendEventLocal:
-        case Dynarmic::A64::Exception::Yield:
-            return;
-        case Dynarmic::A64::Exception::Breakpoint:
-            if (GDBStub::IsServerEnabled()) {
-                parent.jit->HaltExecution();
-                parent.SetPC(pc);
-                Kernel::Thread* const thread = parent.system.CurrentScheduler().GetCurrentThread();
-                parent.SaveContext(thread->GetContext());
-                GDBStub::Break();
-                GDBStub::SendTrap(thread, 5);
-                return;
-            }
-            [[fallthrough]];
-        default:
-            ASSERT_MSG(false, "ExceptionRaised(exception = {}, pc = {:X})",
-                       static_cast<std::size_t>(exception), pc);
+        case Dynarmic::A32::Exception::UndefinedInstruction:
+        case Dynarmic::A32::Exception::UnpredictableInstruction:
+            break;
+        case Dynarmic::A32::Exception::Breakpoint:
+            break;
         }
+        LOG_CRITICAL(HW_GPU, "ExceptionRaised(exception = {}, pc = {:08X}, code = {:08X})",
+                     static_cast<std::size_t>(exception), pc, MemoryReadCode(pc));
     }
 
     void CallSVC(u32 swi) override {
@@ -122,9 +103,6 @@ public:
     u64 GetTicksRemaining() override {
         return std::max(parent.system.CoreTiming().GetDowncount(), s64{0});
     }
-    u64 GetCNTPCT() override {
-        return Timing::CpuCyclesToClockCycles(parent.system.CoreTiming().GetTicks());
-    }
 
     ARM_Dynarmic& parent;
     std::size_t num_interpreted_instructions = 0;
@@ -132,34 +110,14 @@ public:
     u64 tpidr_el0 = 0;
 };
 
-std::unique_ptr<Dynarmic::A64::Jit> ARM_Dynarmic::MakeJit(Common::PageTable& page_table,
+std::unique_ptr<Dynarmic::A32::Jit> ARM_Dynarmic::MakeJit(Common::PageTable& page_table,
                                                           std::size_t address_space_bits) const {
-    Dynarmic::A64::UserConfig config;
-
-    // Callbacks
+    Dynarmic::A32::UserConfig config;
     config.callbacks = cb.get();
-
-    // Memory
-    config.page_table = reinterpret_cast<void**>(page_table.pointers.data());
-    config.page_table_address_space_bits = address_space_bits;
-    config.silently_mirror_page_table = false;
-    config.absolute_offset_page_table = true;
-
-    // Multi-process state
-    config.processor_id = core_index;
-    config.global_monitor = &exclusive_monitor.monitor;
-
-    // System registers
-    config.tpidrro_el0 = &cb->tpidrro_el0;
-    config.tpidr_el0 = &cb->tpidr_el0;
-    config.dczid_el0 = 4;
-    config.ctr_el0 = 0x8444c004;
-    config.cntfrq_el0 = Hardware::CNTFREQ;
-
-    // Unpredictable instructions
+    // config.page_table = &page_table.pointers;
+    config.coprocessors[15] = std::make_shared<DynarmicCP15>((u32*)&CP15_regs[0]);
     config.define_unpredictable_behaviour = true;
-
-    return std::make_unique<Dynarmic::A64::Jit>(config);
+    return std::make_unique<Dynarmic::A32::Jit>(config);
 }
 
 MICROPROFILE_DEFINE(ARM_Jit_Dynarmic, "ARM JIT", "Dynarmic", MP_RGB(255, 64, 64));
@@ -167,60 +125,91 @@ MICROPROFILE_DEFINE(ARM_Jit_Dynarmic, "ARM JIT", "Dynarmic", MP_RGB(255, 64, 64)
 void ARM_Dynarmic::Run() {
     MICROPROFILE_SCOPE(ARM_Jit_Dynarmic);
 
+    // u64 pc = GetPC();
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+    // pc += 4;
+    // printf("%08X", Common::swap32(Core::System::GetInstance().Memory().Read32(pc)));
+
     jit->Run();
 }
 
 void ARM_Dynarmic::Step() {
-    cb->InterpreterFallback(jit->GetPC(), 1);
+    cb->InterpreterFallback(jit->Regs()[15], 1);
 }
 
 ARM_Dynarmic::ARM_Dynarmic(System& system, ExclusiveMonitor& exclusive_monitor,
                            std::size_t core_index)
     : ARM_Interface{system},
-      cb(std::make_unique<ARM_Dynarmic_Callbacks>(*this)), inner_unicorn{system},
-      core_index{core_index}, exclusive_monitor{
-                                  dynamic_cast<DynarmicExclusiveMonitor&>(exclusive_monitor)} {}
+      cb(std::make_unique<ARM_Dynarmic_Callbacks>(*this)), core_index{core_index},
+      exclusive_monitor{dynamic_cast<DynarmicExclusiveMonitor&>(exclusive_monitor)} {}
 
 ARM_Dynarmic::~ARM_Dynarmic() = default;
 
 void ARM_Dynarmic::SetPC(u64 pc) {
-    jit->SetPC(pc);
+    jit->Regs()[15] = (u32)pc;
 }
 
 u64 ARM_Dynarmic::GetPC() const {
-    return jit->GetPC();
+    return jit->Regs()[15];
 }
 
 u64 ARM_Dynarmic::GetReg(int index) const {
-    return jit->GetRegister(index);
+    return jit->Regs()[index];
 }
 
 void ARM_Dynarmic::SetReg(int index, u64 value) {
-    jit->SetRegister(index, value);
+    jit->Regs()[index] = (u32)value;
 }
 
 u128 ARM_Dynarmic::GetVectorReg(int index) const {
-    return jit->GetVector(index);
+    return {};
+    // jit->GetVector(index);
 }
 
 void ARM_Dynarmic::SetVectorReg(int index, u128 value) {
-    jit->SetVector(index, value);
+    // jit->SetVector(index, value);
 }
 
 u32 ARM_Dynarmic::GetPSTATE() const {
-    return jit->GetPstate();
+    return jit->Cpsr();
 }
 
-void ARM_Dynarmic::SetPSTATE(u32 pstate) {
-    jit->SetPstate(pstate);
+void ARM_Dynarmic::SetPSTATE(u32 cpsr) {
+    jit->SetCpsr(cpsr);
 }
 
 u64 ARM_Dynarmic::GetTlsAddress() const {
-    return cb->tpidrro_el0;
+    return CP15_regs[CP15_THREAD_URO];
 }
 
 void ARM_Dynarmic::SetTlsAddress(VAddr address) {
-    cb->tpidrro_el0 = address;
+    CP15_regs[CP15_THREAD_URO] = (u32)address;
 }
 
 u64 ARM_Dynarmic::GetTPIDR_EL0() const {
@@ -232,25 +221,22 @@ void ARM_Dynarmic::SetTPIDR_EL0(u64 value) {
 }
 
 void ARM_Dynarmic::SaveContext(ThreadContext& ctx) {
-    ctx.cpu_registers = jit->GetRegisters();
-    ctx.sp = jit->GetSP();
-    ctx.pc = jit->GetPC();
-    ctx.pstate = jit->GetPstate();
-    ctx.vector_registers = jit->GetVectors();
-    ctx.fpcr = jit->GetFpcr();
-    ctx.fpsr = jit->GetFpsr();
-    ctx.tpidr = cb->tpidr_el0;
+    Dynarmic::A32::Context context;
+
+    jit->SaveContext(context);
+
+    ctx.cpu_registers = context.Regs();
+    ctx.ext_regs = context.ExtRegs();
+    ctx.cpsr = context.Cpsr();
 }
 
 void ARM_Dynarmic::LoadContext(const ThreadContext& ctx) {
-    jit->SetRegisters(ctx.cpu_registers);
-    jit->SetSP(ctx.sp);
-    jit->SetPC(ctx.pc);
-    jit->SetPstate(ctx.pstate);
-    jit->SetVectors(ctx.vector_registers);
-    jit->SetFpcr(ctx.fpcr);
-    jit->SetFpsr(ctx.fpsr);
-    SetTPIDR_EL0(ctx.tpidr);
+    Dynarmic::A32::Context context;
+    context.Regs() = ctx.cpu_registers;
+    context.ExtRegs() = ctx.ext_regs;
+    context.SetCpsr(ctx.cpsr);
+
+    jit->LoadContext(context);
 }
 
 void ARM_Dynarmic::PrepareReschedule() {
@@ -262,7 +248,7 @@ void ARM_Dynarmic::ClearInstructionCache() {
 }
 
 void ARM_Dynarmic::ClearExclusiveState() {
-    jit->ClearExclusiveState();
+    // ASSERT(false);
 }
 
 void ARM_Dynarmic::PageTableChanged(Common::PageTable& page_table,

@@ -242,7 +242,7 @@ QString WaitTreeThread::GetText() const {
 
     const auto& context = thread.GetContext();
     const QString pc_info = tr(" PC = 0x%1 LR = 0x%2")
-                                .arg(context.pc, 8, 16, QLatin1Char{'0'})
+                                .arg(context.cpu_registers[15], 8, 16, QLatin1Char{'0'})
                                 .arg(context.cpu_registers[30], 8, 16, QLatin1Char{'0'});
     return QStringLiteral("%1%2 (%3) ")
         .arg(WaitTreeSynchronizationObject::GetText(), pc_info, status);

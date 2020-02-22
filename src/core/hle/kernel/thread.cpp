@@ -143,12 +143,12 @@ void Thread::CancelWait() {
 static void ResetThreadContext(Core::ARM_Interface::ThreadContext& context, VAddr stack_top,
                                VAddr entry_point, u64 arg) {
     context = {};
-    context.cpu_registers[0] = arg;
-    context.pc = entry_point;
-    context.sp = stack_top;
+    context.cpu_registers[0] = (u32)arg;
+    context.cpu_registers[15] = (u32)entry_point;
+    context.cpu_registers[13] = (u32)stack_top;
     // TODO(merry): Perform a hardware test to determine the below value.
     // AHP = 0, DN = 1, FTZ = 1, RMode = Round towards zero
-    context.fpcr = 0x03C00000;
+    // context.fpcr = 0x03C00000;
 }
 
 ResultVal<std::shared_ptr<Thread>> Thread::Create(KernelCore& kernel, std::string name,

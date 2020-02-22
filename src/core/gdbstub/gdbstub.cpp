@@ -219,19 +219,20 @@ static u64 RegRead(std::size_t id, Kernel::Thread* thread = nullptr) {
 
     const auto& thread_context = thread->GetContext();
 
-    if (id < SP_REGISTER) {
-        return thread_context.cpu_registers[id];
-    } else if (id == SP_REGISTER) {
-        return thread_context.sp;
-    } else if (id == PC_REGISTER) {
-        return thread_context.pc;
-    } else if (id == PSTATE_REGISTER) {
-        return thread_context.pstate;
-    } else if (id > PSTATE_REGISTER && id < FPCR_REGISTER) {
-        return thread_context.vector_registers[id - UC_ARM64_REG_Q0][0];
-    } else {
-        return 0;
-    }
+    // if (id < SP_REGISTER) {
+    //    return thread_context.cpu_registers[id];
+    //} else if (id == SP_REGISTER) {
+    //    return thread_context.sp;
+    //} else if (id == PC_REGISTER) {
+    //    return thread_context.pc;
+    //} else if (id == PSTATE_REGISTER) {
+    //    return thread_context.pstate;
+    //} else if (id > PSTATE_REGISTER && id < FPCR_REGISTER) {
+    //    return thread_context.vector_registers[id - UC_ARM64_REG_Q0][0];
+    //} else {
+    //    return 0;
+    //}
+    return {};
 }
 
 static void RegWrite(std::size_t id, u64 val, Kernel::Thread* thread = nullptr) {
@@ -241,17 +242,17 @@ static void RegWrite(std::size_t id, u64 val, Kernel::Thread* thread = nullptr) 
 
     auto& thread_context = thread->GetContext();
 
-    if (id < SP_REGISTER) {
-        thread_context.cpu_registers[id] = val;
-    } else if (id == SP_REGISTER) {
-        thread_context.sp = val;
-    } else if (id == PC_REGISTER) {
-        thread_context.pc = val;
-    } else if (id == PSTATE_REGISTER) {
-        thread_context.pstate = static_cast<u32>(val);
-    } else if (id > PSTATE_REGISTER && id < FPCR_REGISTER) {
-        thread_context.vector_registers[id - (PSTATE_REGISTER + 1)][0] = val;
-    }
+    // if (id < SP_REGISTER) {
+    //    thread_context.cpu_registers[id] = val;
+    //} else if (id == SP_REGISTER) {
+    //    thread_context.sp = val;
+    //} else if (id == PC_REGISTER) {
+    //    thread_context.pc = val;
+    //} else if (id == PSTATE_REGISTER) {
+    //    thread_context.pstate = static_cast<u32>(val);
+    //} else if (id > PSTATE_REGISTER && id < FPCR_REGISTER) {
+    //    thread_context.vector_registers[id - (PSTATE_REGISTER + 1)][0] = val;
+    //}
 }
 
 static u128 FpuRead(std::size_t id, Kernel::Thread* thread = nullptr) {
@@ -261,13 +262,15 @@ static u128 FpuRead(std::size_t id, Kernel::Thread* thread = nullptr) {
 
     auto& thread_context = thread->GetContext();
 
-    if (id >= UC_ARM64_REG_Q0 && id < FPCR_REGISTER) {
-        return thread_context.vector_registers[id - UC_ARM64_REG_Q0];
-    } else if (id == FPCR_REGISTER) {
-        return u128{thread_context.fpcr, 0};
-    } else {
-        return u128{0};
-    }
+    // if (id >= UC_ARM64_REG_Q0 && id < FPCR_REGISTER) {
+    //    return thread_context.vector_registers[id - UC_ARM64_REG_Q0];
+    //} else if (id == FPCR_REGISTER) {
+    //    return u128{thread_context.fpcr, 0};
+    //} else {
+    //    return u128{0};
+    //}
+
+    return {};
 }
 
 static void FpuWrite(std::size_t id, u128 val, Kernel::Thread* thread = nullptr) {
@@ -277,11 +280,11 @@ static void FpuWrite(std::size_t id, u128 val, Kernel::Thread* thread = nullptr)
 
     auto& thread_context = thread->GetContext();
 
-    if (id >= UC_ARM64_REG_Q0 && id < FPCR_REGISTER) {
-        thread_context.vector_registers[id - UC_ARM64_REG_Q0] = val;
-    } else if (id == FPCR_REGISTER) {
-        thread_context.fpcr = static_cast<u32>(val[0]);
-    }
+    // if (id >= UC_ARM64_REG_Q0 && id < FPCR_REGISTER) {
+    //    thread_context.vector_registers[id - UC_ARM64_REG_Q0] = val;
+    //} else if (id == FPCR_REGISTER) {
+    //    thread_context.fpcr = static_cast<u32>(val[0]);
+    //}
 }
 
 /**

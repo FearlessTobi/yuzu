@@ -1060,13 +1060,13 @@ static ResultCode GetThreadContext(Core::System& system, VAddr thread_context, H
 
     Core::ARM_Interface::ThreadContext ctx = thread->GetContext();
     // Mask away mode bits, interrupt bits, IL bit, and other reserved bits.
-    ctx.pstate &= 0xFF0FFE20;
+    // ctx.pstate &= 0xFF0FFE20;
 
     // If 64-bit, we can just write the context registers directly and we're good.
     // However, if 32-bit, we have to ensure some registers are zeroed out.
     if (!current_process->Is64BitProcess()) {
         std::fill(ctx.cpu_registers.begin() + 15, ctx.cpu_registers.end(), 0);
-        std::fill(ctx.vector_registers.begin() + 16, ctx.vector_registers.end(), u128{});
+        // std::fill(ctx.vector_registers.begin() + 16, ctx.vector_registers.end(), u128{});
     }
 
     system.Memory().WriteBlock(thread_context, &ctx, sizeof(ctx));

@@ -129,11 +129,11 @@ AppLoader_DeconstructedRomDirectory::LoadResult AppLoader_DeconstructedRomDirect
     }
     metadata.Print();
 
-    const FileSys::ProgramAddressSpaceType arch_bits{metadata.GetAddressSpaceType()};
-    if (arch_bits == FileSys::ProgramAddressSpaceType::Is32Bit ||
-        arch_bits == FileSys::ProgramAddressSpaceType::Is32BitNoMap) {
-        return {ResultStatus::Error32BitISA, {}};
-    }
+    // const FileSys::ProgramAddressSpaceType arch_bits{metadata.GetAddressSpaceType()};
+    // if (arch_bits == FileSys::ProgramAddressSpaceType::Is32Bit ||
+    //    arch_bits == FileSys::ProgramAddressSpaceType::Is32BitNoMap) {
+    //    return {ResultStatus::Error32BitISA, {}};
+    //}
 
     if (process.LoadFromMetadata(metadata).IsError()) {
         return {ResultStatus::ErrorUnableToParseKernelMetadata, {}};

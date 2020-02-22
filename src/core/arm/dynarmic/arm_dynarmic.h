@@ -5,7 +5,7 @@
 #pragma once
 
 #include <memory>
-#include <dynarmic/A64/a64.h>
+#include <dynarmic/A32/a32.h>
 #include <dynarmic/A64/exclusive_monitor.h>
 #include "common/common_types.h"
 #include "core/arm/arm_interface.h"
@@ -53,16 +53,17 @@ public:
                           std::size_t new_address_space_size_in_bits) override;
 
 private:
-    std::unique_ptr<Dynarmic::A64::Jit> MakeJit(Common::PageTable& page_table,
+    std::unique_ptr<Dynarmic::A32::Jit> MakeJit(Common::PageTable& page_table,
                                                 std::size_t address_space_bits) const;
 
     friend class ARM_Dynarmic_Callbacks;
     std::unique_ptr<ARM_Dynarmic_Callbacks> cb;
-    std::unique_ptr<Dynarmic::A64::Jit> jit;
-    ARM_Unicorn inner_unicorn;
+    std::unique_ptr<Dynarmic::A32::Jit> jit;
+    // ARM_Unicorn inner_unicorn;
 
     std::size_t core_index;
     DynarmicExclusiveMonitor& exclusive_monitor;
+    std::array<u32, 84> CP15_regs{};
 };
 
 class DynarmicExclusiveMonitor final : public ExclusiveMonitor {

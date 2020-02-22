@@ -55,8 +55,9 @@ static bool UnmappedMemoryHook(uc_engine* uc, uc_mem_type type, u64 addr, int si
 
     ARM_Interface::ThreadContext ctx{};
     system->CurrentArmInterface().SaveContext(ctx);
-    ASSERT_MSG(false, "Attempted to read from unmapped memory: 0x{:X}, pc=0x{:X}, lr=0x{:X}", addr,
-               ctx.pc, ctx.cpu_registers[30]);
+    // ASSERT_MSG(false, "Attempted to read from unmapped memory: 0x{:X}, pc=0x{:X}, lr=0x{:X}",
+    // addr,
+    //           {}, ctx.cpu_registers[30]);
 
     return false;
 }
@@ -192,25 +193,25 @@ void ARM_Unicorn::SaveContext(ThreadContext& ctx) {
     int uregs[32];
     void* tregs[32];
 
-    CHECKED(uc_reg_read(uc, UC_ARM64_REG_SP, &ctx.sp));
-    CHECKED(uc_reg_read(uc, UC_ARM64_REG_PC, &ctx.pc));
-    CHECKED(uc_reg_read(uc, UC_ARM64_REG_NZCV, &ctx.pstate));
+    // CHECKED(uc_reg_read(uc, UC_ARM64_REG_SP, &ctx.sp));
+    // CHECKED(uc_reg_read(uc, UC_ARM64_REG_PC, &ctx.pc));
+    // CHECKED(uc_reg_read(uc, UC_ARM64_REG_NZCV, &ctx.pstate));
 
-    for (auto i = 0; i < 29; ++i) {
-        uregs[i] = UC_ARM64_REG_X0 + i;
-        tregs[i] = &ctx.cpu_registers[i];
-    }
-    uregs[29] = UC_ARM64_REG_X29;
-    tregs[29] = (void*)&ctx.cpu_registers[29];
-    uregs[30] = UC_ARM64_REG_X30;
-    tregs[30] = (void*)&ctx.cpu_registers[30];
+    // for (auto i = 0; i < 29; ++i) {
+    //    uregs[i] = UC_ARM64_REG_X0 + i;
+    //    tregs[i] = &ctx.cpu_registers[i];
+    //}
+    // uregs[29] = UC_ARM64_REG_X29;
+    // tregs[29] = (void*)&ctx.cpu_registers[29];
+    // uregs[30] = UC_ARM64_REG_X30;
+    // tregs[30] = (void*)&ctx.cpu_registers[30];
 
-    CHECKED(uc_reg_read_batch(uc, uregs, tregs, 31));
+    // CHECKED(uc_reg_read_batch(uc, uregs, tregs, 31));
 
-    for (int i = 0; i < 32; ++i) {
-        uregs[i] = UC_ARM64_REG_Q0 + i;
-        tregs[i] = &ctx.vector_registers[i];
-    }
+    // for (int i = 0; i < 32; ++i) {
+    //    uregs[i] = UC_ARM64_REG_Q0 + i;
+    //    tregs[i] = &ctx.vector_registers[i];
+    //}
 
     CHECKED(uc_reg_read_batch(uc, uregs, tregs, 32));
 }
@@ -219,25 +220,25 @@ void ARM_Unicorn::LoadContext(const ThreadContext& ctx) {
     int uregs[32];
     void* tregs[32];
 
-    CHECKED(uc_reg_write(uc, UC_ARM64_REG_SP, &ctx.sp));
-    CHECKED(uc_reg_write(uc, UC_ARM64_REG_PC, &ctx.pc));
-    CHECKED(uc_reg_write(uc, UC_ARM64_REG_NZCV, &ctx.pstate));
+    /*   CHECKED(uc_reg_write(uc, UC_ARM64_REG_SP, &ctx.sp));
+       CHECKED(uc_reg_write(uc, UC_ARM64_REG_PC, &ctx.pc));
+       CHECKED(uc_reg_write(uc, UC_ARM64_REG_NZCV, &ctx.pstate));
 
-    for (int i = 0; i < 29; ++i) {
-        uregs[i] = UC_ARM64_REG_X0 + i;
-        tregs[i] = (void*)&ctx.cpu_registers[i];
-    }
-    uregs[29] = UC_ARM64_REG_X29;
-    tregs[29] = (void*)&ctx.cpu_registers[29];
-    uregs[30] = UC_ARM64_REG_X30;
-    tregs[30] = (void*)&ctx.cpu_registers[30];
+       for (int i = 0; i < 29; ++i) {
+           uregs[i] = UC_ARM64_REG_X0 + i;
+           tregs[i] = (void*)&ctx.cpu_registers[i];
+       }
+       uregs[29] = UC_ARM64_REG_X29;
+       tregs[29] = (void*)&ctx.cpu_registers[29];
+       uregs[30] = UC_ARM64_REG_X30;
+       tregs[30] = (void*)&ctx.cpu_registers[30];
 
-    CHECKED(uc_reg_write_batch(uc, uregs, tregs, 31));
+       CHECKED(uc_reg_write_batch(uc, uregs, tregs, 31));
 
-    for (auto i = 0; i < 32; ++i) {
-        uregs[i] = UC_ARM64_REG_Q0 + i;
-        tregs[i] = (void*)&ctx.vector_registers[i];
-    }
+       for (auto i = 0; i < 32; ++i) {
+           uregs[i] = UC_ARM64_REG_Q0 + i;
+           tregs[i] = (void*)&ctx.vector_registers[i];
+       }*/
 
     CHECKED(uc_reg_write_batch(uc, uregs, tregs, 32));
 }
