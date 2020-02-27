@@ -15,6 +15,10 @@ static inline u64 Param(const Core::System& system, int n) {
     return system.CurrentArmInterface().GetReg(n);
 }
 
+static inline u32 Param32(const Core::System& system, int n) {
+    return (u32)system.CurrentArmInterface().GetReg(n);
+}
+
 /**
  * HLE a function return from the current ARM userland process
  * @param system System context
@@ -22,6 +26,10 @@ static inline u64 Param(const Core::System& system, int n) {
  */
 static inline void FuncReturn(Core::System& system, u64 result) {
     system.CurrentArmInterface().SetReg(0, result);
+}
+
+static inline void FuncReturn32(Core::System& system, u32 result) {
+    system.CurrentArmInterface().SetReg(0, (u64)result);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -340,6 +348,49 @@ void SvcWrap(Core::System& system) {
 template <void func(Core::System&, u32, u64, u64)>
 void SvcWrap(Core::System& system) {
     func(system, static_cast<u32>(Param(system, 0)), Param(system, 1), Param(system, 2));
+}
+
+// e.g. QueryMemory32
+template <ResultCode func(Core::System&, u32, u32, u32)>
+void SvcWrap32(Core::System& system) {
+    FuncReturn32(system,
+                 func(system, Param32(system, 0), Param32(system, 1), Param32(system, 2)).raw);
+}
+
+// e.g. GetInfo32
+template <ResultCode func(Core::System&, u32*, u32*, u32, u32, u32, u32)>
+void SvcWrap32(Core::System& system) {
+    u32 param_1 = 0;
+    u32 param_2 = 0;
+
+    const u32 retval = func(system, &param_1, &param_2, Param32(system, 0), Param32(system, 1),
+                            Param32(system, 2), Param32(system, 3))
+                           .raw;
+
+    system.CurrentArmInterface().SetReg(1, param_1);
+    system.CurrentArmInterface().SetReg(2, param_2);
+    FuncReturn(system, retval);
+}
+
+// e.g. GetThreadPriority32
+template <ResultCode func(Core::System&, u32*, u32)>
+void SvcWrap32(Core::System& system) {
+    u32 param_1 = 0;
+    const u32 retval = func(system, &param_1, Param32(system, 1)).raw;
+    system.CurrentArmInterface().SetReg(1, param_1);
+    FuncReturn(system, retval);
+}
+
+// e.g. GetThreadId32
+template <ResultCode func(Core::System&, u32*, u32*, u32)>
+void SvcWrap32(Core::System& system) {
+    u32 param_1 = 0;
+    u32 param_2 = 0;
+
+    const u32 retval = func(system, &param_1, &param_2, Param32(system, 1)).raw;
+    system.CurrentArmInterface().SetReg(1, param_1);
+    system.CurrentArmInterface().SetReg(2, param_2);
+    FuncReturn(system, retval);
 }
 
 } // namespace Kernel

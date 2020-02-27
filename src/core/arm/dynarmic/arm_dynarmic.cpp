@@ -81,6 +81,8 @@ public:
         }
         LOG_CRITICAL(HW_GPU, "ExceptionRaised(exception = {}, pc = {:08X}, code = {:08X})",
                      static_cast<std::size_t>(exception), pc, MemoryReadCode(pc));
+
+        std::exit(0);
     }
 
     void CallSVC(u32 swi) override {
