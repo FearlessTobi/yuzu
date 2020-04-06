@@ -487,36 +487,39 @@ public:
         return false;
     }
 
+    bool first_call = true;
     void SendFeedback() const override {
-        LOG_CRITICAL(Frontend, "SendFeedback in RUMBLE");
+        if (first_call) {
+            LOG_CRITICAL(Frontend, "SendFeedback in RUMBLE");
+
+            // Open the device
+            SDL_InitSubSystem(SDL_INIT_HAPTIC);
+            haptic = SDL_HapticOpenFromJoystick(joystick->GetSDLJoystick());
+
+            if (haptic == NULL) {
+                LOG_CRITICAL(Frontend, "ERROR0: {}", SDL_GetError());
+                return;
+            }
+
+            if (SDL_HapticRumbleInit(haptic) != 0) {
+                LOG_CRITICAL(Frontend, "ERROR1: {}", SDL_GetError()); // Gets called
+                return;
+            }
+            first_call = false;
+        }
 
         // TODO: MAKE NON BLOCKING
-        SDL_Haptic* haptic;
-
-        // Open the device
-        SDL_InitSubSystem(SDL_INIT_HAPTIC);
-        haptic = SDL_HapticOpenFromJoystick(joystick->GetSDLJoystick());
-
-        if (haptic == NULL) {
-            LOG_CRITICAL(Frontend, "ERROR0: {}", SDL_GetError());
-            return;
-        }
-
-        if (SDL_HapticRumbleInit(haptic) != 0) {
-            LOG_CRITICAL(Frontend, "ERROR1: {}", SDL_GetError()); // Gets called
-            return;
-        }
-
-        if (SDL_HapticRumblePlay(haptic, 0.5, 2000) != 0) {
+        if (SDL_HapticRumblePlay(haptic, 1, 5) != 0) {
             LOG_CRITICAL(Frontend, "ERROR2: {}", SDL_GetError());
             return;
         }
 
-        SDL_HapticClose(haptic);
+        // SDL_HapticClose(haptic);
     }
 
 private:
     std::shared_ptr<SDLJoystick> joystick;
+    SDL_Haptic* haptic;
     const int axis_x;
     const int axis_y;
     const float deadzone;
