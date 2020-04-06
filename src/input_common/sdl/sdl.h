@@ -23,11 +23,17 @@ public:
     virtual ~State() = default;
 
     virtual Pollers GetPollers(Polling::DeviceType type) = 0;
+
+    virtual Pollers GetRumblePollers(Polling::DeviceType type) = 0;
 };
 
 class NullState : public State {
 public:
     Pollers GetPollers(Polling::DeviceType type) override {
+        return {};
+    }
+
+    Pollers GetRumblePollers(Polling::DeviceType type) override {
         return {};
     }
 };

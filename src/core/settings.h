@@ -329,6 +329,7 @@ struct PlayerInput {
     ControllerType type;
     ButtonsRaw buttons;
     AnalogsRaw analogs;
+    std::string rumble;
 
     u32 body_color_right;
     u32 button_color_right;

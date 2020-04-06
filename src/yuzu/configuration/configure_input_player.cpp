@@ -92,6 +92,10 @@ static QString ButtonToText(const Common::ParamPackage& param) {
             return QObject::tr("Button %1").arg(button_str);
         }
 
+        if (param.Has("rumble")) {
+            return QObject::tr("Rumble shit");
+        }
+
         return {};
     }
 
@@ -145,6 +149,10 @@ ConfigureInputPlayer::ConfigureInputPlayer(QWidget* parent, std::size_t player_i
         ui->buttonLStickLeft, ui->buttonLStickUp, ui->buttonLStickRight, ui->buttonLStickDown,
         ui->buttonRStickLeft, ui->buttonRStickUp, ui->buttonRStickRight, ui->buttonRStickDown,
         ui->buttonSL,         ui->buttonSR,       ui->buttonHome,        ui->buttonScreenshot,
+    };
+
+    rumble_button_map = {
+        ui->buttonRumble,
     };
 
     analog_map_buttons = {{
@@ -264,7 +272,7 @@ ConfigureInputPlayer::ConfigureInputPlayer(QWidget* parent, std::size_t player_i
                             }
                             buttons_param[button_id] = std::move(params);
                         },
-                        InputCommon::Polling::DeviceType::Button);
+                        InputCommon::Polling::DeviceType::Button, false);
         });
         connect(button, &QPushButton::customContextMenuRequested, [=](const QPoint& menu_location) {
             QMenu context_menu;
@@ -281,6 +289,31 @@ ConfigureInputPlayer::ConfigureInputPlayer(QWidget* parent, std::size_t player_i
         });
     }
 
+    // TODO
+    auto* const rumble_button = rumble_button_map[0];
+    if (rumble_button != nullptr) {
+        rumble_button->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(rumble_button, &QPushButton::clicked, [=] {
+            HandleClick(rumble_button_map[0],
+                        [=](Common::ParamPackage params) { rumble_param = std::move(params); },
+                        InputCommon::Polling::DeviceType::Button, true);
+        });
+        connect(rumble_button, &QPushButton::customContextMenuRequested,
+                [=](const QPoint& menu_location) {
+                    QMenu context_menu;
+                    context_menu.addAction(tr("Clear"), [&] {
+                        rumble_param.Clear();
+                        rumble_button_map[0]->setText(tr("[not set]"));
+                    });
+                    context_menu.addAction(tr("Restore Default"), [&] {
+                        rumble_param = Common::ParamPackage{InputCommon::GenerateRumbleParam()};
+                        rumble_button_map[0]->setText(QStringLiteral("No text yet"));
+                    });
+                    context_menu.exec(rumble_button_map[0]->mapToGlobal(menu_location));
+                });
+    }
+    // TODO
+
     for (int analog_id = 0; analog_id < Settings::NativeAnalog::NumAnalogs; analog_id++) {
         for (int sub_button_id = 0; sub_button_id < ANALOG_SUB_BUTTONS_NUM; sub_button_id++) {
             auto* const analog_button = analog_map_buttons[analog_id][sub_button_id];
@@ -295,7 +328,7 @@ ConfigureInputPlayer::ConfigureInputPlayer(QWidget* parent, std::size_t player_i
                                 SetAnalogButton(params, analogs_param[analog_id],
                                                 analog_sub_buttons[sub_button_id]);
                             },
-                            InputCommon::Polling::DeviceType::Button);
+                            InputCommon::Polling::DeviceType::Button, false);
             });
             connect(analog_button, &QPushButton::customContextMenuRequested,
                     [=](const QPoint& menu_location) {
@@ -325,7 +358,7 @@ ConfigureInputPlayer::ConfigureInputPlayer(QWidget* parent, std::size_t player_i
                 HandleClick(
                     analog_map_stick[analog_id],
                     [=](const Common::ParamPackage& params) { analogs_param[analog_id] = params; },
-                    InputCommon::Polling::DeviceType::Analog);
+                    InputCommon::Polling::DeviceType::Analog, false);
             }
         });
         connect(analog_map_deadzone[analog_id], &QSlider::valueChanged, [=] {
@@ -395,6 +428,8 @@ void ConfigureInputPlayer::ApplyConfiguration() {
     Settings::values.players[player_index].button_color_left = colors[1];
     Settings::values.players[player_index].body_color_right = colors[2];
     Settings::values.players[player_index].button_color_right = colors[3];
+
+    Settings::values.players[player_index].rumble = rumble_param.Serialize();
 }
 
 void ConfigureInputPlayer::changeEvent(QEvent* event) {
@@ -456,6 +491,8 @@ void ConfigureInputPlayer::LoadConfiguration() {
             QStringLiteral("QPushButton { background-color: %1 }")
                 .arg(controller_colors[i].name()));
     }
+
+    rumble_param = Common::ParamPackage(Settings::values.players[player_index].rumble);
 }
 
 void ConfigureInputPlayer::RestoreDefaults() {
@@ -533,25 +570,31 @@ void ConfigureInputPlayer::UpdateButtonLabels() {
             analog_deadzone_label->setVisible(false);
         }
     }
+
+    rumble_button_map[0]->setText(ButtonToText(rumble_param));
 }
 
 void ConfigureInputPlayer::HandleClick(
     QPushButton* button, std::function<void(const Common::ParamPackage&)> new_input_setter,
-    InputCommon::Polling::DeviceType type) {
+    InputCommon::Polling::DeviceType type, bool for_rumble) {
     button->setText(tr("[press key]"));
     button->setFocus();
 
-    const auto iter = std::find(button_map.begin(), button_map.end(), button);
-    ASSERT(iter != button_map.end());
-    const auto index = std::distance(button_map.begin(), iter);
-    ASSERT(index < Settings::NativeButton::NumButtons && index >= 0);
+    // Keyboard keys can only be used as button devices
+    want_keyboard_keys = type == InputCommon::Polling::DeviceType::Button;
+
+    // const auto iter = std::find(button_map.begin(), button_map.end(), button);
+    // ASSERT(iter != button_map.end());
+    // const auto index = std::distance(button_map.begin(), iter);
+    // ASSERT(index < Settings::NativeButton::NumButtons && index >= 0);
 
     input_setter = new_input_setter;
 
-    device_pollers = InputCommon::Polling::GetPollers(type);
-
-    // Keyboard keys can only be used as button devices
-    want_keyboard_keys = type == InputCommon::Polling::DeviceType::Button;
+    if (for_rumble) {
+        device_pollers = InputCommon::Polling::GetRumblePollers(type);
+    } else {
+        device_pollers = InputCommon::Polling::GetPollers(type);
+    }
 
     for (auto& poller : device_pollers) {
         poller->Start();

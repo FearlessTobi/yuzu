@@ -294,6 +294,11 @@ void Config::ReadPlayerValues() {
                 player_analogs = default_param;
             }
         }
+
+        player.rumble =
+            ReadSetting(QStringLiteral("player_%1_rumble_device").arg(p), QStringLiteral(""))
+                .toString()
+                .toStdString();
     }
 
     std::stable_partition(
@@ -842,6 +847,8 @@ void Config::SavePlayerValues() {
                          QString::fromStdString(player.analogs[i]),
                          QString::fromStdString(default_param));
         }
+        WriteSetting(QStringLiteral("player_%1_rumble_device").arg(p),
+                     QString::fromStdString(player.rumble), QStringLiteral(""));
     }
 }
 

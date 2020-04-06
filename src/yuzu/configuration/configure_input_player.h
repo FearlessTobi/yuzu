@@ -59,7 +59,7 @@ private:
     /// Called when the button was pressed.
     void HandleClick(QPushButton* button,
                      std::function<void(const Common::ParamPackage&)> new_input_setter,
-                     InputCommon::Polling::DeviceType type);
+                     InputCommon::Polling::DeviceType type, bool for_rumble);
 
     /// Finish polling and configure input using the input_setter
     void SetPollingResult(const Common::ParamPackage& params, bool abort);
@@ -80,11 +80,13 @@ private:
 
     std::array<Common::ParamPackage, Settings::NativeButton::NumButtons> buttons_param;
     std::array<Common::ParamPackage, Settings::NativeAnalog::NumAnalogs> analogs_param;
+    Common::ParamPackage rumble_param;
 
     static constexpr int ANALOG_SUB_BUTTONS_NUM = 5;
 
     /// Each button input is represented by a QPushButton.
     std::array<QPushButton*, Settings::NativeButton::NumButtons> button_map;
+    std::array<QPushButton*, Settings::NativeButton::NumButtons> rumble_button_map;
 
     std::vector<QWidget*> debug_hidden;
     std::vector<QWidget*> layout_hidden;

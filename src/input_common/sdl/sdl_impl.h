@@ -21,6 +21,7 @@ namespace InputCommon::SDL {
 
 class SDLAnalogFactory;
 class SDLButtonFactory;
+class SDLRumbleFactory;
 class SDLJoystick;
 
 class SDLState : public State {
@@ -46,6 +47,8 @@ public:
     /// Get all DevicePoller that use the SDL backend for a specific device type
     Pollers GetPollers(Polling::DeviceType type) override;
 
+    Pollers GetRumblePollers(Polling::DeviceType type) override;
+
     /// Used by the Pollers during config
     std::atomic<bool> polling = false;
     Common::SPSCQueue<SDL_Event> event_queue;
@@ -63,6 +66,7 @@ private:
 
     std::shared_ptr<SDLButtonFactory> button_factory;
     std::shared_ptr<SDLAnalogFactory> analog_factory;
+    std::shared_ptr<SDLAnalogFactory> rumble_factory;
 
     bool start_thread = false;
     std::atomic<bool> initialized = false;

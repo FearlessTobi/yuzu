@@ -37,6 +37,8 @@ std::string GenerateKeyboardParam(int key_code);
 std::string GenerateAnalogParamFromKeys(int key_up, int key_down, int key_left, int key_right,
                                         int key_modifier, float modifier_scale);
 
+std::string GenerateRumbleParam();
+
 namespace Polling {
 
 enum class DeviceType { Button, Analog };
@@ -62,5 +64,8 @@ public:
 
 // Get all DevicePoller from all backends for a specific device type
 std::vector<std::unique_ptr<DevicePoller>> GetPollers(DeviceType type);
+
+// Get all DevicePoller from all backends for a specific device type
+std::vector<std::unique_ptr<DevicePoller>> GetRumblePollers(DeviceType type);
 } // namespace Polling
 } // namespace InputCommon

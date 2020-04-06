@@ -33,6 +33,10 @@ public:
     virtual bool GetAnalogDirectionStatus(AnalogDirection direction) const {
         return {};
     }
+    virtual void SendFeedback() const {
+        LOG_CRITICAL(Frontend, "Wrong function!");
+        return;
+    }
 };
 
 /// An abstract class template for a factory that can create input devices.
@@ -69,7 +73,7 @@ template <typename InputDeviceType>
 void RegisterFactory(const std::string& name, std::shared_ptr<Factory<InputDeviceType>> factory) {
     auto pair = std::make_pair(name, std::move(factory));
     if (!Impl::FactoryList<InputDeviceType>::list.insert(std::move(pair)).second) {
-        LOG_ERROR(Input, "Factory '{}' already registered", name);
+        LOG_CRITICAL(Input, "Factory '{}' already registered", name);
     }
 }
 
@@ -81,7 +85,7 @@ void RegisterFactory(const std::string& name, std::shared_ptr<Factory<InputDevic
 template <typename InputDeviceType>
 void UnregisterFactory(const std::string& name) {
     if (Impl::FactoryList<InputDeviceType>::list.erase(name) == 0) {
-        LOG_ERROR(Input, "Factory '{}' not registered", name);
+        LOG_CRITICAL(Input, "Factory '{}' not registered", name);
     }
 }
 
@@ -98,8 +102,9 @@ std::unique_ptr<InputDeviceType> CreateDevice(const std::string& params) {
     const auto pair = factory_list.find(engine);
     if (pair == factory_list.end()) {
         if (engine != "null") {
-            LOG_ERROR(Input, "Unknown engine name: {}", engine);
+            LOG_CRITICAL(Input, "Unknown engine name: {}", engine);
         }
+        LOG_CRITICAL(Input, "Unknown engine!");
         return std::make_unique<InputDeviceType>();
     }
     return pair->second->Create(package);
@@ -148,5 +153,11 @@ using TouchDevice = InputDevice<std::tuple<float, float, bool>>;
  * The s32s are the mouse wheel.
  */
 using MouseDevice = InputDevice<std::tuple<float, float, s32, s32>>;
+
+/**
+ * A button device is an input device that returns bool as status.
+ * true for pressed; false for released.
+ */
+using RumbleDevice = InputDevice<std::tuple<bool, int>>;
 
 } // namespace Input

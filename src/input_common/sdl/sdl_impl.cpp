@@ -117,6 +117,7 @@ public:
 
     void SetSDLJoystick(SDL_Joystick* joystick) {
         sdl_joystick.reset(joystick);
+        // sdl_haptic.reset(SDL_HapticOpenFromJoystick(joystick), &SDL_HapticClose);
     }
 
 private:
@@ -128,6 +129,7 @@ private:
     std::string guid;
     int port;
     std::unique_ptr<SDL_Joystick, decltype(&SDL_JoystickClose)> sdl_joystick;
+    // std::unique_ptr<SDL_Haptic, decltype(&SDL_HapticClose)> sdl_haptic;
     mutable std::mutex mutex;
 };
 
@@ -471,10 +473,92 @@ private:
     SDLState& state;
 };
 
+class SDLRumble final : public Input::RumbleDevice {
+public:
+    SDLRumble(std::shared_ptr<SDLJoystick> joystick_, int axis_x_, int axis_y_, float deadzone_)
+        : joystick(std::move(joystick_)), axis_x(axis_x_), axis_y(axis_y_), deadzone(deadzone_) {}
+
+    std::tuple<bool, int> GetStatus() const override {
+        LOG_CRITICAL(Frontend, "GetStatus in RUMBLE");
+        return std::make_tuple(true, 3);
+    }
+
+    bool GetAnalogDirectionStatus(Input::AnalogDirection direction) const override {
+        return false;
+    }
+
+    void SendFeedback() const override {
+        LOG_CRITICAL(Frontend, "SendFeedback in RUMBLE");
+
+        // TODO: MAKE NON BLOCKING
+        SDL_Haptic* haptic;
+
+        // Open the device
+        SDL_InitSubSystem(SDL_INIT_HAPTIC);
+        haptic = SDL_HapticOpenFromJoystick(joystick->GetSDLJoystick());
+
+        if (haptic == NULL) {
+            LOG_CRITICAL(Frontend, "ERROR0: {}", SDL_GetError());
+            return;
+        }
+
+        if (SDL_HapticRumbleInit(haptic) != 0) {
+            LOG_CRITICAL(Frontend, "ERROR1: {}", SDL_GetError()); // Gets called
+            return;
+        }
+
+        if (SDL_HapticRumblePlay(haptic, 0.5, 2000) != 0) {
+            LOG_CRITICAL(Frontend, "ERROR2: {}", SDL_GetError());
+            return;
+        }
+
+        SDL_HapticClose(haptic);
+    }
+
+private:
+    std::shared_ptr<SDLJoystick> joystick;
+    const int axis_x;
+    const int axis_y;
+    const float deadzone;
+};
+
+/// An analog device factory that creates analog devices from SDL joystick
+class SDLRumbleFactory final : public Input::Factory<Input::RumbleDevice> {
+public:
+    explicit SDLRumbleFactory(SDLState& state_) : state(state_) {}
+    /**
+     * Creates analog device from joystick axes
+     * @param params contains parameters for creating the device:
+     *     - "guid": the guid of the joystick to bind
+     *     - "port": the nth joystick of the same type
+     *     - "axis_x": the index of the axis to be bind as x-axis
+     *     - "axis_y": the index of the axis to be bind as y-axis
+     */
+    std::unique_ptr<Input::RumbleDevice> Create(const Common::ParamPackage& params) override {
+        const std::string guid = params.Get("guid", "0");
+        const int port = params.Get("port", 0);
+        const int axis_x = params.Get("axis_x", 0);
+        const int axis_y = params.Get("axis_y", 1);
+
+        auto joystick = state.GetSDLJoystickByGUID(guid, port);
+
+        LOG_CRITICAL(Frontend, "CreateRumble!");
+
+        // This is necessary so accessing GetAxis with axis_x and axis_y won't crash
+        joystick->SetAxis(axis_x, 0);
+        joystick->SetAxis(axis_y, 0);
+        return std::make_unique<SDLRumble>(joystick, 0, 0, 0.0);
+    }
+
+private:
+    SDLState& state;
+};
+
 SDLState::SDLState() {
     using namespace Input;
     RegisterFactory<ButtonDevice>("sdl", std::make_shared<SDLButtonFactory>(*this));
     RegisterFactory<AnalogDevice>("sdl", std::make_shared<SDLAnalogFactory>(*this));
+    RegisterFactory<RumbleDevice>("sdl_rumble", std::make_shared<SDLRumbleFactory>(*this));
 
     // If the frontend is going to manage the event loop, then we dont start one here
     start_thread = !SDL_WasInit(SDL_INIT_JOYSTICK);
@@ -509,6 +593,7 @@ SDLState::~SDLState() {
     using namespace Input;
     UnregisterFactory<ButtonDevice>("sdl");
     UnregisterFactory<AnalogDevice>("sdl");
+    UnregisterFactory<RumbleDevice>("sdl_rumble");
 
     CloseJoysticks();
     SDL_DelEventWatch(&SDLEventWatcher, this);
@@ -520,8 +605,15 @@ SDLState::~SDLState() {
     }
 }
 
-static Common::ParamPackage SDLEventToButtonParamPackage(SDLState& state, const SDL_Event& event) {
-    Common::ParamPackage params({{"engine", "sdl"}});
+static Common::ParamPackage SDLEventToButtonParamPackage(SDLState& state, const SDL_Event& event,
+                                                         bool for_rumble) {
+    std::string param_string = for_rumble ? "sdl_rumble" : "sdl";
+    std::string engine = "engine";
+
+    std::string& param_string_ref = param_string;
+    std::string& engine_ref = engine;
+
+    Common::ParamPackage params({{engine_ref, param_string_ref}});
 
     switch (event.type) {
     case SDL_JOYAXISMOTION: {
@@ -605,7 +697,28 @@ public:
                 }
             case SDL_JOYBUTTONUP:
             case SDL_JOYHATMOTION:
-                return SDLEventToButtonParamPackage(state, event);
+                return SDLEventToButtonParamPackage(state, event, false);
+            }
+        }
+        return {};
+    }
+};
+
+class SDLRumblePoller final : public SDLPoller {
+public:
+    explicit SDLRumblePoller(SDLState& state_) : SDLPoller(state_) {}
+
+    Common::ParamPackage GetNextInput() override {
+        SDL_Event event;
+        while (state.event_queue.Pop(event)) {
+            switch (event.type) {
+            case SDL_JOYAXISMOTION:
+                if (std::abs(event.jaxis.value / 32767.0) < 0.5) {
+                    break;
+                }
+            case SDL_JOYBUTTONUP:
+            case SDL_JOYHATMOTION:
+                return SDLEventToButtonParamPackage(state, event, true);
             }
         }
         return {};
@@ -676,6 +789,14 @@ SDLState::Pollers SDLState::GetPollers(InputCommon::Polling::DeviceType type) {
         pollers.emplace_back(std::make_unique<Polling::SDLButtonPoller>(*this));
         break;
     }
+
+    return pollers;
+}
+
+SDLState::Pollers SDLState::GetRumblePollers(InputCommon::Polling::DeviceType type) {
+    Pollers pollers;
+
+    pollers.emplace_back(std::make_unique<Polling::SDLRumblePoller>(*this));
 
     return pollers;
 }

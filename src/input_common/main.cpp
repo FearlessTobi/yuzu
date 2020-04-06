@@ -30,7 +30,6 @@ void Init() {
     Input::RegisterFactory<Input::MotionDevice>("motion_emu", motion_emu);
 
     sdl = SDL::Init();
-
     udp = CemuhookUDP::Init();
 }
 
@@ -74,6 +73,13 @@ std::string GenerateAnalogParamFromKeys(int key_up, int key_down, int key_left, 
     return circle_pad_param.Serialize();
 }
 
+std::string GenerateRumbleParam() {
+    Common::ParamPackage param{
+        {"engine", "sdl_rumble"},
+    };
+    return param.Serialize();
+}
+
 namespace Polling {
 
 std::vector<std::unique_ptr<DevicePoller>> GetPollers(DeviceType type) {
@@ -81,6 +87,16 @@ std::vector<std::unique_ptr<DevicePoller>> GetPollers(DeviceType type) {
 
 #ifdef HAVE_SDL2
     pollers = sdl->GetPollers(type);
+#endif
+
+    return pollers;
+}
+
+std::vector<std::unique_ptr<DevicePoller>> GetRumblePollers(DeviceType type) {
+    std::vector<std::unique_ptr<DevicePoller>> pollers;
+
+#ifdef HAVE_SDL2
+    pollers = sdl->GetRumblePollers(type);
 #endif
 
     return pollers;

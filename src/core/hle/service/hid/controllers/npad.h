@@ -318,6 +318,8 @@ private:
         std::array<std::unique_ptr<Input::AnalogDevice>, Settings::NativeAnalog::NUM_STICKS_HID>,
         10>
         sticks;
+    std::array<std::unique_ptr<Input::RumbleDevice>, 10> rumbles;
+
     std::vector<u32> supported_npad_id_types{};
     NpadHoldType hold_type{NpadHoldType::Vertical};
     // Each controller should have their own styleset changed event

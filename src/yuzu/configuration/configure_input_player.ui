@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>408</width>
-    <height>731</height>
+    <width>414</width>
+    <height>751</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -180,7 +180,7 @@
                <string>Deadzone: 0</string>
               </property>
               <property name="alignment">
-               <enum>Qt::AlignHCenter</enum>
+               <set>Qt::AlignHCenter</set>
               </property>
              </widget>
             </item>
@@ -796,7 +796,7 @@
                <string>Deadzone: 0</string>
               </property>
               <property name="alignment">
-               <enum>Qt::AlignHCenter</enum>
+               <set>Qt::AlignHCenter</set>
               </property>
              </widget>
             </item>
@@ -1008,19 +1008,6 @@
           </item>
          </layout>
         </item>
-        <item row="3" column="1">
-         <spacer name="verticalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
         <item row="0" column="0">
          <layout class="QVBoxLayout" name="buttonMiscPlusVerticalLayout">
           <item>
@@ -1036,28 +1023,6 @@
           </item>
           <item>
            <widget class="QPushButton" name="buttonPlus">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item row="0" column="1">
-         <layout class="QVBoxLayout" name="buttonMiscHomeVerticalLayout">
-          <item>
-           <layout class="QHBoxLayout" name="buttonMiscHomeHorizontalLayout">
-            <item>
-             <widget class="QLabel" name="labelHome">
-              <property name="text">
-               <string>Home:</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QPushButton" name="buttonHome">
             <property name="text">
              <string/>
             </property>
@@ -1101,6 +1066,48 @@
            </widget>
           </item>
          </layout>
+        </item>
+        <item row="0" column="1">
+         <layout class="QVBoxLayout" name="buttonMiscHomeVerticalLayout">
+          <item>
+           <layout class="QHBoxLayout" name="buttonMiscHomeHorizontalLayout">
+            <item>
+             <widget class="QLabel" name="labelHome">
+              <property name="text">
+               <string>Home:</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="buttonHome">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="3" column="1">
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="3" column="0">
+         <widget class="QPushButton" name="buttonRumble">
+          <property name="text">
+           <string>PushButton</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

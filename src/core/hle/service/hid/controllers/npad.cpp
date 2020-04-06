@@ -234,6 +234,7 @@ void Controller_NPad::OnLoadInputDevices() {
         std::transform(players[i].analogs.begin() + Settings::NativeAnalog::STICK_HID_BEGIN,
                        players[i].analogs.begin() + Settings::NativeAnalog::STICK_HID_END,
                        sticks[i].begin(), Input::CreateDevice<Input::AnalogDevice>);
+        rumbles[i] = Input::CreateDevice<Input::RumbleDevice>(players[i].rumble);
     }
 }
 
@@ -502,14 +503,17 @@ void Controller_NPad::VibrateController(const std::vector<u32>& controller_ids,
                                         const std::vector<Vibration>& vibrations) {
     LOG_WARNING(Service_HID, "(STUBBED) called");
 
-    if (!can_controllers_vibrate) {
-        return;
-    }
+    // if (!can_controllers_vibrate) {
+    //    return;
+    //}
+
     for (std::size_t i = 0; i < controller_ids.size(); i++) {
         std::size_t controller_pos = NPadIdToIndex(static_cast<u32>(i));
-        if (connected_controllers[controller_pos].is_connected) {
-            // TODO(ogniK): Vibrate the physical controller
-        }
+        // if (connected_controllers[controller_pos].is_connected) {
+        LOG_CRITICAL(Frontend, "Pos: {}", controller_pos);
+        rumbles[controller_pos]->GetStatus();
+        rumbles[controller_pos]->SendFeedback();
+        //}
     }
     last_processed_vibration = vibrations.back();
 }
