@@ -49,7 +49,18 @@ static int SDLEventWatcher(void* user_data, SDL_Event* event) {
 class SDLJoystick {
 public:
     SDLJoystick(std::string guid_, int port_, SDL_Joystick* joystick)
-        : guid{std::move(guid_)}, port{port_}, sdl_joystick{joystick, &SDL_JoystickClose} {}
+        : guid{std::move(guid_)}, port{port_}, sdl_joystick{joystick, &SDL_JoystickClose},
+          sdl_haptic{SDL_HapticOpenFromJoystick(joystick), &SDL_HapticClose} {
+        const unsigned int supported_effects = SDL_HapticQuery(GetSDLHaptic());
+
+        // Disable autocenter:
+        if (supported_effects & SDL_HAPTIC_AUTOCENTER)
+            SDL_HapticSetAutocenter(GetSDLHaptic(), 0);
+
+        // Constant
+        if (supported_effects & SDL_HAPTIC_CONSTANT)
+            ; // AddOutput(new ConstantEffect(GetSDLHaptic()));
+    }
 
     void SetButton(int button, bool value) {
         std::lock_guard lock{mutex};
@@ -115,6 +126,10 @@ public:
         return sdl_joystick.get();
     }
 
+    SDL_Haptic* GetSDLHaptic() {
+        return sdl_haptic.get();
+    }
+
     void SetSDLJoystick(SDL_Joystick* joystick) {
         sdl_joystick.reset(joystick);
         // sdl_haptic.reset(SDL_HapticOpenFromJoystick(joystick), &SDL_HapticClose);
@@ -129,8 +144,84 @@ private:
     std::string guid;
     int port;
     std::unique_ptr<SDL_Joystick, decltype(&SDL_JoystickClose)> sdl_joystick;
-    // std::unique_ptr<SDL_Haptic, decltype(&SDL_HapticClose)> sdl_haptic;
+    std::unique_ptr<SDL_Haptic, decltype(&SDL_HapticClose)> sdl_haptic;
     mutable std::mutex mutex;
+};
+
+class SDLHapticEffect {
+public:
+    SDLHapticEffect(SDL_Haptic* haptic) : m_haptic(haptic) {
+        // FYI: type is set within UpdateParameters.
+        m_effect.type = DISABLED_EFFECT_TYPE;
+        m_effect.constant = {};
+        SetDirection(&m_effect.constant.direction);
+        m_effect.constant.length = 1000 * 10;
+    }
+
+    ~SDLHapticEffect() {
+        m_effect.type = DISABLED_EFFECT_TYPE;
+        UpdateEffect();
+    }
+
+    void UpdateEffect() {
+        if (m_effect.type != DISABLED_EFFECT_TYPE) {
+            if (m_id < 0) {
+                // Upload and try to play the effect.
+                m_id = SDL_HapticNewEffect(m_haptic, &m_effect);
+
+                if (m_id >= 0)
+                    SDL_HapticRunEffect(m_haptic, m_id, 1);
+            } else {
+                // Effect is already playing. Update parameters.
+                SDL_HapticUpdateEffect(m_haptic, m_id, &m_effect);
+            }
+        } else if (m_id >= 0) {
+            // Stop and remove the effect.
+            SDL_HapticStopEffect(m_haptic, m_id);
+            SDL_HapticDestroyEffect(m_haptic, m_id);
+            m_id = -1;
+        }
+    }
+
+    void SetDirection(SDL_HapticDirection* dir) {
+        // Left direction (for wheels)
+        dir->type = SDL_HAPTIC_CARTESIAN;
+        dir->dir[0] = -1;
+    }
+
+    std::string GetName() const {
+        return "Constant";
+    }
+
+    void SetState() {
+        // Maximum force value for all SDL effects:
+        constexpr s16 MAX_FORCE_VALUE = 0x7fff;
+
+        if (UpdateParameters(s16(MAX_FORCE_VALUE))) {
+            UpdateEffect();
+        }
+    }
+
+    bool UpdateParameters(s16 value) {
+        s16& level = m_effect.constant.level;
+        const s16 old_level = level;
+
+        level = value;
+
+        m_effect.type = level ? SDL_HAPTIC_CONSTANT : DISABLED_EFFECT_TYPE;
+        return level != old_level;
+    }
+
+private:
+    struct State {
+        std::unordered_map<int, bool> buttons;
+        std::unordered_map<int, Sint16> axes;
+        std::unordered_map<int, Uint8> hats;
+    } state;
+    SDL_Haptic* m_haptic;
+    SDL_HapticEffect m_effect = {};
+    static constexpr u16 DISABLED_EFFECT_TYPE = 0;
+    int m_id = -1;
 };
 
 std::shared_ptr<SDLJoystick> SDLState::GetSDLJoystickByGUID(const std::string& guid, int port) {
@@ -487,43 +578,39 @@ public:
         return false;
     }
 
-    bool first_call = true;
     void SendFeedback() const override {
-        if (first_call) {
-            LOG_CRITICAL(Frontend, "SendFeedback in RUMBLE");
+        LOG_CRITICAL(Frontend, "SendFeedback in RUMBLE");
 
-            // Open the device
-            SDL_InitSubSystem(SDL_INIT_HAPTIC);
-            haptic = SDL_HapticOpenFromJoystick(joystick->GetSDLJoystick());
-
-            if (haptic == NULL) {
-                LOG_CRITICAL(Frontend, "ERROR0: {}", SDL_GetError());
-                return;
-            }
-
-            if (SDL_HapticRumbleInit(haptic) != 0) {
-                LOG_CRITICAL(Frontend, "ERROR1: {}", SDL_GetError()); // Gets called
-                return;
-            }
-            first_call = false;
-        }
-
-        // TODO: MAKE NON BLOCKING
-        if (SDL_HapticRumblePlay(haptic, 1, 5) != 0) {
-            LOG_CRITICAL(Frontend, "ERROR2: {}", SDL_GetError());
+        // Open the device
+        if (joystick->GetSDLHaptic() == NULL) {
+            LOG_CRITICAL(Frontend, "ERROR0: {}", SDL_GetError());
             return;
         }
 
-        // SDL_HapticClose(haptic);
+        if (SDL_HapticRumbleInit(joystick->GetSDLHaptic()) != 0) {
+            LOG_CRITICAL(Frontend, "ERROR1: {}", SDL_GetError()); // Gets called
+            return;
+        }
+
+        haptic;
+
+        // TODO: MAKE NON BLOCKING
+        /* if (SDL_HapticRumblePlay(joystick->GetSDLHaptic(), 1, 5) != 0) {
+             LOG_CRITICAL(Frontend, "ERROR2: {}", SDL_GetError());
+             return;
+         }*/
+        SDL_Haptic* haptic = joystick->GetSDLHaptic();
+        // HapticCreateConstantEffect(haptic);
     }
 
 private:
     std::shared_ptr<SDLJoystick> joystick;
-    SDL_Haptic* haptic;
+    std::shared_ptr<SDLHapticEffect> haptic = std::make_shared<SDLHapticEffect>();
+    int m_id = -1;
     const int axis_x;
     const int axis_y;
     const float deadzone;
-};
+}; // namespace InputCommon::SDL
 
 /// An analog device factory that creates analog devices from SDL joystick
 class SDLRumbleFactory final : public Input::Factory<Input::RumbleDevice> {
@@ -564,8 +651,8 @@ SDLState::SDLState() {
     RegisterFactory<RumbleDevice>("sdl_rumble", std::make_shared<SDLRumbleFactory>(*this));
 
     // If the frontend is going to manage the event loop, then we dont start one here
-    start_thread = !SDL_WasInit(SDL_INIT_JOYSTICK);
-    if (start_thread && SDL_Init(SDL_INIT_JOYSTICK) < 0) {
+    start_thread = !SDL_WasInit(SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC);
+    if (start_thread && SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
         LOG_CRITICAL(Input, "SDL_Init(SDL_INIT_JOYSTICK) failed with: {}", SDL_GetError());
         return;
     }

@@ -14,7 +14,7 @@
 #include "yuzu_cmd/emu_window/emu_window_sdl2.h"
 
 EmuWindow_SDL2::EmuWindow_SDL2(Core::System& system, bool fullscreen) : system{system} {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
         LOG_CRITICAL(Frontend, "Failed to initialize SDL2! Exiting...");
         exit(1);
     }
