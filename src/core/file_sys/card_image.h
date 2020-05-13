@@ -9,6 +9,7 @@
 #include <vector>
 #include "common/common_types.h"
 #include "common/swap.h"
+#include "core/core.h"
 #include "core/crypto/key_manager.h"
 #include "core/file_sys/vfs.h"
 
@@ -140,6 +141,6 @@ private:
 
     u64 update_normal_partition_end;
 
-    Core::Crypto::KeyManager keys;
+    // Core::Crypto::KeyManager keys;
 };
 } // namespace FileSys

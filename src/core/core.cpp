@@ -382,6 +382,8 @@ struct System::Impl {
 
     std::unique_ptr<Core::PerfStats> perf_stats;
     Core::FrameLimiter frame_limiter;
+
+    Core::Crypto::KeyManager keys;
 };
 
 System::System() : impl{std::make_unique<Impl>(*this)} {}
@@ -576,6 +578,14 @@ Core::FrameLimiter& System::FrameLimiter() {
 
 const Core::FrameLimiter& System::FrameLimiter() const {
     return impl->frame_limiter;
+}
+
+Core::Crypto::KeyManager& System::GetKeyManager() {
+    return impl->keys;
+}
+
+const Core::Crypto::KeyManager& System::GetKeyManager() const {
+    return impl->keys;
 }
 
 Loader::ResultStatus System::GetGameName(std::string& out) const {

@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 #include "common/common_types.h"
+#include "core/core.h"
 #include "core/file_sys/vfs.h"
 
 namespace Loader {
@@ -73,7 +74,7 @@ private:
     std::map<u64, std::map<std::pair<TitleType, ContentRecordType>, std::shared_ptr<NCA>>> ncas;
     std::vector<VirtualFile> ticket_files;
 
-    Core::Crypto::KeyManager keys;
+    // Core::Crypto::KeyManager keys;
 
     VirtualFile romfs;
     VirtualDir exefs;

@@ -79,6 +79,7 @@ Loader::ResultStatus NAX::Parse(std::string_view path) {
     if (file->GetSize() < NAX_HEADER_PADDING_SIZE + header->file_size)
         return Loader::ResultStatus::ErrorIncorrectNAXFileSize;
 
+    auto& keys = Core::System::GetInstance().GetKeyManager();
     keys.DeriveSDSeedLazy();
     std::array<Core::Crypto::Key256, 2> sd_keys{};
     const auto sd_keys_res = Core::Crypto::DeriveSDKeys(sd_keys, keys);

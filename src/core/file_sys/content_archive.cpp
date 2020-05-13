@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "common/logging/log.h"
+#include "core/core.h"
 #include "core/crypto/aes_util.h"
 #include "core/crypto/ctr_encryption_layer.h"
 #include "core/file_sys/content_archive.h"
@@ -118,9 +119,8 @@ static bool IsValidNCA(const NCAHeader& header) {
     return header.magic == Common::MakeMagic('N', 'C', 'A', '3');
 }
 
-NCA::NCA(VirtualFile file_, VirtualFile bktr_base_romfs_, u64 bktr_base_ivfc_offset,
-         Core::Crypto::KeyManager keys_)
-    : file(std::move(file_)), bktr_base_romfs(std::move(bktr_base_romfs_)), keys(std::move(keys_)) {
+NCA::NCA(VirtualFile file_, VirtualFile bktr_base_romfs_, u64 bktr_base_ivfc_offset)
+    : file(std::move(file_)), bktr_base_romfs(std::move(bktr_base_romfs_)) {
     if (file == nullptr) {
         status = Loader::ResultStatus::ErrorNullFile;
         return;
@@ -177,6 +177,7 @@ bool NCA::HandlePotentialHeaderDecryption() {
     }
 
     NCAHeader dec_header{};
+    auto& keys = Core::System::GetInstance().GetKeyManager();
     Core::Crypto::AESCipher<Core::Crypto::Key256> cipher(
         keys.GetKey(Core::Crypto::S256KeyType::Header), Core::Crypto::Mode::XTS);
     cipher.XTSTranscode(&header, sizeof(NCAHeader), &dec_header, 0, 0x200,
@@ -210,6 +211,7 @@ std::vector<NCASectionHeader> NCA::ReadSectionHeaders() const {
 
     if (encrypted) {
         auto raw = file->ReadBytes(length_sections, SECTION_HEADER_OFFSET);
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         Core::Crypto::AESCipher<Core::Crypto::Key256> cipher(
             keys.GetKey(Core::Crypto::S256KeyType::Header), Core::Crypto::Mode::XTS);
         cipher.XTSTranscode(raw.data(), length_sections, sections.data(), 2, SECTION_HEADER_SIZE,
@@ -410,6 +412,7 @@ u8 NCA::GetCryptoRevision() const {
 std::optional<Core::Crypto::Key128> NCA::GetKeyAreaKey(NCASectionCryptoType type) const {
     const auto master_key_id = GetCryptoRevision();
 
+    auto& keys = Core::System::GetInstance().GetKeyManager();
     if (!keys.HasKey(Core::Crypto::S128KeyType::KeyArea, master_key_id, header.key_index))
         return {};
 
@@ -445,6 +448,7 @@ std::optional<Core::Crypto::Key128> NCA::GetTitlekey() {
         return {};
     }
 
+    auto& keys = Core::System::GetInstance().GetKeyManager();
     auto titlekey = keys.GetKey(Core::Crypto::S128KeyType::Titlekey, rights_id[1], rights_id[0]);
     if (titlekey == Core::Crypto::Key128{}) {
         status = Loader::ResultStatus::ErrorMissingTitlekey;

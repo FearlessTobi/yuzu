@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "core/file_sys/vfs_types.h"
 #include "core/hle/kernel/object.h"
 
@@ -298,6 +299,12 @@ public:
 
     /// Provides a constant referent to the frame limiter
     const Core::FrameLimiter& FrameLimiter() const;
+
+    /// Provides a reference to the key manager;
+    Core::Crypto::KeyManager& GetKeyManager();
+
+    /// Provides a constant referent to the key manager
+    const Core::Crypto::KeyManager& GetKeyManager() const;
 
     /// Gets the name of the current game
     Loader::ResultStatus GetGameName(std::string& out) const;

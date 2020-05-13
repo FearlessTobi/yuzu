@@ -79,10 +79,11 @@ VirtualDir BISFactory::OpenPartition(BisPartitionId id) const {
 }
 
 VirtualFile BISFactory::OpenPartitionStorage(BisPartitionId id) const {
-    Core::Crypto::KeyManager keys;
+    // Core::Crypto::KeyManager keys;
     Core::Crypto::PartitionDataManager pdm{
         Core::System::GetInstance().GetFilesystem()->OpenDirectory(
             FileUtil::GetUserPath(FileUtil::UserPath::SysDataDir), Mode::Read)};
+    auto& keys = Core::System::GetInstance().GetKeyManager();
     keys.PopulateFromPartitionData(pdm);
 
     switch (id) {

@@ -60,6 +60,7 @@ public:
         // clang-format on
         RegisterHandlers(functions);
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         keys.PopulateTickets();
         keys.SynthesizeTickets();
     }
@@ -90,6 +91,7 @@ private:
         Core::Crypto::Ticket raw{};
         std::memcpy(&raw, ticket.data(), sizeof(Core::Crypto::Ticket));
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         if (!keys.AddTicketPersonalized(raw)) {
             LOG_ERROR(Service_ETicket, "The ticket could not be imported!");
             IPC::ResponseBuilder rb{ctx, 2};
@@ -102,6 +104,7 @@ private:
     }
 
     void GetTitleKey(Kernel::HLERequestContext& ctx) {
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         IPC::RequestParser rp{ctx};
         const auto rights_id = rp.PopRaw<u128>();
 
@@ -130,6 +133,7 @@ private:
     void CountCommonTicket(Kernel::HLERequestContext& ctx) {
         LOG_DEBUG(Service_ETicket, "called");
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         const u32 count = static_cast<u32>(keys.GetCommonTickets().size());
 
         IPC::ResponseBuilder rb{ctx, 3};
@@ -140,6 +144,7 @@ private:
     void CountPersonalizedTicket(Kernel::HLERequestContext& ctx) {
         LOG_DEBUG(Service_ETicket, "called");
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         const u32 count = static_cast<u32>(keys.GetPersonalizedTickets().size());
 
         IPC::ResponseBuilder rb{ctx, 3};
@@ -148,6 +153,7 @@ private:
     }
 
     void ListCommonTicket(Kernel::HLERequestContext& ctx) {
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         u32 out_entries;
         if (keys.GetCommonTickets().empty())
             out_entries = 0;
@@ -171,6 +177,7 @@ private:
     }
 
     void ListPersonalizedTicket(Kernel::HLERequestContext& ctx) {
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         u32 out_entries;
         if (keys.GetPersonalizedTickets().empty())
             out_entries = 0;
@@ -202,6 +209,7 @@ private:
         if (!CheckRightsId(ctx, rights_id))
             return;
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         const auto ticket = keys.GetCommonTickets().at(rights_id);
 
         IPC::ResponseBuilder rb{ctx, 4};
@@ -218,6 +226,7 @@ private:
         if (!CheckRightsId(ctx, rights_id))
             return;
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         const auto ticket = keys.GetPersonalizedTickets().at(rights_id);
 
         IPC::ResponseBuilder rb{ctx, 4};
@@ -234,6 +243,7 @@ private:
         if (!CheckRightsId(ctx, rights_id))
             return;
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         const auto ticket = keys.GetCommonTickets().at(rights_id);
 
         const auto write_size = std::min<u64>(ticket.GetSize(), ctx.GetWriteBufferSize());
@@ -253,6 +263,7 @@ private:
         if (!CheckRightsId(ctx, rights_id))
             return;
 
+        auto& keys = Core::System::GetInstance().GetKeyManager();
         const auto ticket = keys.GetPersonalizedTickets().at(rights_id);
 
         const auto write_size = std::min<u64>(ticket.GetSize(), ctx.GetWriteBufferSize());
@@ -263,7 +274,7 @@ private:
         rb.Push<u64>(write_size);
     }
 
-    Core::Crypto::KeyManager keys;
+    // Core::Crypto::KeyManager keys;
 };
 
 void InstallInterfaces(SM::ServiceManager& service_manager) {
