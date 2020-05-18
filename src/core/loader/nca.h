@@ -5,6 +5,7 @@
 #pragma once
 
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "core/file_sys/vfs.h"
 #include "core/loader/loader.h"
 
@@ -47,6 +48,7 @@ public:
 private:
     std::unique_ptr<FileSys::NCA> nca;
     std::unique_ptr<AppLoader_DeconstructedRomDirectory> directory_loader;
+    Core::Crypto::KeyManager keys;
 };
 
 } // namespace Loader

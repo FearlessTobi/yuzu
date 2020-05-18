@@ -1608,8 +1608,9 @@ void GMainWindow::OnMenuInstallToNAND() {
             }
         }
     } else {
+        Core::Crypto::KeyManager keys;
         const auto nca = std::make_shared<FileSys::NCA>(
-            vfs->OpenFile(filename.toStdString(), FileSys::Mode::Read));
+            vfs->OpenFile(filename.toStdString(), FileSys::Mode::Read), keys);
         const auto id = nca->GetStatus();
 
         // Game updates necessary are missing base RomFS

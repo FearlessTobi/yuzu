@@ -22,7 +22,8 @@ AppLoader_NCA::AppLoader_NCA(FileSys::VirtualFile file_)
 AppLoader_NCA::~AppLoader_NCA() = default;
 
 FileType AppLoader_NCA::IdentifyType(const FileSys::VirtualFile& file) {
-    FileSys::NCA nca(file);
+    Core::Crypto::KeyManager keys;
+    FileSys::NCA nca(file, keys);
 
     if (nca.GetStatus() == ResultStatus::Success &&
         nca.GetType() == FileSys::NCAContentType::Program)

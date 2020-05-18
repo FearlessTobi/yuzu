@@ -199,7 +199,7 @@ bool PlaceholderCache::Register(RegisteredCache* cache, const NcaID& placeholder
     if (file == nullptr)
         return false;
 
-    const auto res = cache->RawInstallNCA(NCA{file}, &VfsRawCopy, false, install);
+    const auto res = cache->RawInstallNCA(NCA{file, keys}, &VfsRawCopy, false, install);
 
     if (res != InstallResult::Success)
         return false;
@@ -218,7 +218,7 @@ std::optional<std::array<u8, 0x10>> PlaceholderCache::GetRightsID(const NcaID& i
     if (file == nullptr)
         return std::nullopt;
 
-    NCA nca{file};
+    NCA nca{file, keys};
 
     if (nca.GetStatus() != Loader::ResultStatus::Success &&
         nca.GetStatus() != Loader::ResultStatus::ErrorMissingBKTRBaseRomFS) {
@@ -408,7 +408,7 @@ void RegisteredCache::ProcessFiles(const std::vector<NcaID>& ids) {
 
         if (file == nullptr)
             continue;
-        const auto nca = std::make_shared<NCA>(parser(file, id), nullptr, 0, keys);
+        const auto nca = std::make_shared<NCA>(parser(file, id), keys, nullptr, 0);
         if (nca->GetStatus() != Loader::ResultStatus::Success ||
             nca->GetType() != NCAContentType::Meta) {
             continue;
@@ -486,7 +486,7 @@ std::unique_ptr<NCA> RegisteredCache::GetEntry(u64 title_id, ContentRecordType t
     const auto raw = GetEntryRaw(title_id, type);
     if (raw == nullptr)
         return nullptr;
-    return std::make_unique<NCA>(raw, nullptr, 0, keys);
+    return std::make_unique<NCA>(raw, keys, nullptr, 0);
 }
 
 template <typename T>
@@ -539,7 +539,8 @@ static std::shared_ptr<NCA> GetNCAFromNSPForID(const NSP& nsp, const NcaID& id) 
     if (file == nullptr) {
         return nullptr;
     }
-    return std::make_shared<NCA>(std::move(file));
+    Core::Crypto::KeyManager keys;
+    return std::make_shared<NCA>(std::move(file), keys);
 }
 
 InstallResult RegisteredCache::InstallEntry(const XCI& xci, bool overwrite_if_exists,
@@ -865,7 +866,7 @@ std::unique_ptr<NCA> ManualContentProvider::GetEntry(u64 title_id, ContentRecord
     const auto res = GetEntryRaw(title_id, type);
     if (res == nullptr)
         return nullptr;
-    return std::make_unique<NCA>(res, nullptr, 0, keys);
+    return std::make_unique<NCA>(res, keys, nullptr, 0);
 }
 
 std::vector<ContentProviderEntry> ManualContentProvider::ListEntriesFilter(

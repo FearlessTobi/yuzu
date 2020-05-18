@@ -396,7 +396,7 @@ VirtualFile PatchManager::PatchRomFS(VirtualFile romfs, u64 ivfc_offset, Content
         std::find(disabled.cbegin(), disabled.cend(), "Update") != disabled.cend();
 
     if (!update_disabled && update != nullptr) {
-        const auto new_nca = std::make_shared<NCA>(update, romfs, ivfc_offset);
+        const auto new_nca = std::make_shared<NCA>(update, keys, romfs, ivfc_offset);
         if (new_nca->GetStatus() == Loader::ResultStatus::Success &&
             new_nca->GetRomFS() != nullptr) {
             LOG_INFO(Loader, "    RomFS: Update ({}) applied successfully",
@@ -404,7 +404,7 @@ VirtualFile PatchManager::PatchRomFS(VirtualFile romfs, u64 ivfc_offset, Content
             romfs = new_nca->GetRomFS();
         }
     } else if (!update_disabled && update_raw != nullptr) {
-        const auto new_nca = std::make_shared<NCA>(update_raw, romfs, ivfc_offset);
+        const auto new_nca = std::make_shared<NCA>(update_raw, keys, romfs, ivfc_offset);
         if (new_nca->GetStatus() == Loader::ResultStatus::Success &&
             new_nca->GetRomFS() != nullptr) {
             LOG_INFO(Loader, "    RomFS: Update (PACKED) applied successfully");

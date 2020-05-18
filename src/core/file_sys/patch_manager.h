@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "core/file_sys/nca_metadata.h"
 #include "core/file_sys/vfs.h"
 #include "core/memory/dmnt_cheat_types.h"
@@ -83,6 +84,8 @@ private:
                                             const std::string& build_id) const;
 
     u64 title_id;
+
+    Core::Crypto::KeyManager keys;
 };
 
 } // namespace FileSys

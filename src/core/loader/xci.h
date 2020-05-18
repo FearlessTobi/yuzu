@@ -57,6 +57,8 @@ private:
 
     FileSys::VirtualFile icon_file;
     std::unique_ptr<FileSys::NACP> nacp_file;
+
+    Core::Crypto::KeyManager keys;
 };
 
 } // namespace Loader

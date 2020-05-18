@@ -98,9 +98,8 @@ inline bool IsDirectoryLogoPartition(const VirtualDir& pfs) {
 // After construction, use GetStatus to determine if the file is valid and ready to be used.
 class NCA : public ReadOnlyVfsDirectory {
 public:
-    explicit NCA(VirtualFile file, VirtualFile bktr_base_romfs = nullptr,
-                 u64 bktr_base_ivfc_offset = 0,
-                 Core::Crypto::KeyManager keys = Core::Crypto::KeyManager());
+    explicit NCA(VirtualFile file, Core::Crypto::KeyManager keys = Core::Crypto::KeyManager(),
+                 VirtualFile bktr_base_romfs = nullptr, u64 bktr_base_ivfc_offset = 0);
     ~NCA() override;
 
     Loader::ResultStatus GetStatus() const;

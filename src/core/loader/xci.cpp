@@ -100,7 +100,7 @@ ResultStatus AppLoader_XCI::ReadUpdateRaw(FileSys::VirtualFile& file) {
 
     if (read == nullptr)
         return ResultStatus::ErrorNoPackedUpdate;
-    const auto nca_test = std::make_shared<FileSys::NCA>(read);
+    const auto nca_test = std::make_shared<FileSys::NCA>(read, keys);
 
     if (nca_test->GetStatus() != ResultStatus::ErrorMissingBKTRBaseRomFS)
         return nca_test->GetStatus();

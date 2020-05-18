@@ -6,6 +6,7 @@
 
 #include <memory>
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "core/file_sys/vfs.h"
 #include "core/loader/loader.h"
 
@@ -58,6 +59,8 @@ private:
     FileSys::VirtualFile icon_file;
     std::unique_ptr<FileSys::NACP> nacp_file;
     u64 title_id;
+
+    Core::Crypto::KeyManager keys;
 };
 
 } // namespace Loader

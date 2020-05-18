@@ -136,7 +136,7 @@ VirtualFile NAX::GetDecrypted() const {
 
 std::unique_ptr<NCA> NAX::AsNCA() const {
     if (type == NAXContentType::NCA)
-        return std::make_unique<NCA>(GetDecrypted());
+        return std::make_unique<NCA>(GetDecrypted(), keys);
     return nullptr;
 }
 

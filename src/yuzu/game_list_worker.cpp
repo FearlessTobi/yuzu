@@ -280,9 +280,10 @@ void GameListWorker::AddTitlesToGameList(GameListDir* parent_dir) {
 
 void GameListWorker::ScanFileSystem(ScanTarget target, const std::string& dir_path,
                                     unsigned int recursion, GameListDir* parent_dir) {
-    const auto callback = [this, target, recursion,
-                           parent_dir](u64* num_entries_out, const std::string& directory,
-                                       const std::string& virtual_name) -> bool {
+    Core::Crypto::KeyManager keys;
+    const auto callback = [this, target, recursion, parent_dir,
+                           keys](u64* num_entries_out, const std::string& directory,
+                                 const std::string& virtual_name) -> bool {
         if (stop_processing) {
             // Breaks the callback loop.
             return false;
@@ -308,9 +309,10 @@ void GameListWorker::ScanFileSystem(ScanTarget target, const std::string& dir_pa
 
             if (target == ScanTarget::FillManualContentProvider) {
                 if (res2 == Loader::ResultStatus::Success && file_type == Loader::FileType::NCA) {
-                    provider->AddEntry(FileSys::TitleType::Application,
-                                       FileSys::GetCRTypeFromNCAType(FileSys::NCA{file}.GetType()),
-                                       program_id, file);
+                    provider->AddEntry(
+                        FileSys::TitleType::Application,
+                        FileSys::GetCRTypeFromNCAType(FileSys::NCA{file, keys}.GetType()),
+                        program_id, file);
                 } else if (res2 == Loader::ResultStatus::Success &&
                            (file_type == Loader::FileType::XCI ||
                             file_type == Loader::FileType::NSP)) {
