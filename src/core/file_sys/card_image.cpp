@@ -61,7 +61,7 @@ XCI::XCI(VirtualFile file_)
     }
 
     secure_partition = std::make_shared<NSP>(
-        main_hfs.GetFile(partition_names[static_cast<std::size_t>(XCIPartition::Secure)]));
+        main_hfs.GetFile(partition_names[static_cast<std::size_t>(XCIPartition::Secure)]), keys);
 
     ncas = secure_partition->GetNCAsCollapsed();
     program =

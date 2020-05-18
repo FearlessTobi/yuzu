@@ -22,7 +22,7 @@
 namespace Loader {
 
 AppLoader_NSP::AppLoader_NSP(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys)
-    : AppLoader(file), nsp(std::make_unique<FileSys::NSP>(file)),
+    : AppLoader(file), nsp(std::make_unique<FileSys::NSP>(file, keys)),
       title_id(nsp->GetProgramTitleID()), keys{keys} {
 
     if (nsp->GetStatus() != ResultStatus::Success)
@@ -51,7 +51,7 @@ AppLoader_NSP::~AppLoader_NSP() = default;
 
 FileType AppLoader_NSP::IdentifyType(const FileSys::VirtualFile& file,
                                      Core::Crypto::KeyManager& keys) {
-    FileSys::NSP nsp(file);
+    FileSys::NSP nsp(file, keys);
 
     if (nsp.GetStatus() == ResultStatus::Success) {
         // Extracted Type case
