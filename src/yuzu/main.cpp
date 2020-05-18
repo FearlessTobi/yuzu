@@ -1576,7 +1576,7 @@ void GMainWindow::OnMenuInstallToNAND() {
                 failed();
         } else {
             const auto xci = std::make_shared<FileSys::XCI>(
-                vfs->OpenFile(filename.toStdString(), FileSys::Mode::Read));
+                vfs->OpenFile(filename.toStdString(), FileSys::Mode::Read), keys);
             nsp = xci->GetSecurePartitionNSP();
         }
 

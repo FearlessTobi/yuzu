@@ -48,7 +48,9 @@ std::string FormatTitleVersion(u32 version, TitleVersionFormat format) {
     return fmt::format("v{}.{}.{}", bytes[3], bytes[2], bytes[1]);
 }
 
-PatchManager::PatchManager(u64 title_id) : title_id(title_id) {}
+PatchManager::PatchManager(u64 title_id) : title_id(title_id) {
+    LOG_WARNING(Frontend, "Patch Manager!");
+}
 
 PatchManager::~PatchManager() = default;
 

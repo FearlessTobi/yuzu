@@ -475,8 +475,8 @@ void FileSystemController::WriteSaveDataSize(FileSys::SaveDataType type, u64 tit
         save_data_factory->WriteSaveDataSize(type, title_id, user_id, new_value);
 }
 
-void FileSystemController::SetGameCard(FileSys::VirtualFile file) {
-    gamecard = std::make_unique<FileSys::XCI>(file);
+void FileSystemController::SetGameCard(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys) {
+    gamecard = std::make_unique<FileSys::XCI>(file, keys);
     const auto dir = gamecard->ConcatenatedPseudoDirectory();
     gamecard_registered = std::make_unique<FileSys::RegisteredCache>(dir);
     gamecard_placeholder = std::make_unique<FileSys::PlaceholderCache>(dir);

@@ -21,7 +21,7 @@
 namespace Loader {
 
 AppLoader_XCI::AppLoader_XCI(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys)
-    : AppLoader(file), xci(std::make_unique<FileSys::XCI>(file)), keys{keys},
+    : AppLoader(file), xci(std::make_unique<FileSys::XCI>(file, keys)), keys{keys},
       nca_loader(std::make_unique<AppLoader_NCA>(xci->GetProgramNCAFile(), keys)) {
     if (xci->GetStatus() != ResultStatus::Success)
         return;
@@ -30,6 +30,7 @@ AppLoader_XCI::AppLoader_XCI(FileSys::VirtualFile file, Core::Crypto::KeyManager
     if (control_nca == nullptr || control_nca->GetStatus() != ResultStatus::Success)
         return;
 
+    // TODO: PatchManager
     std::tie(nacp_file, icon_file) =
         FileSys::PatchManager(xci->GetProgramTitleID()).ParseControlNCA(*control_nca);
 }
@@ -38,7 +39,7 @@ AppLoader_XCI::~AppLoader_XCI() = default;
 
 FileType AppLoader_XCI::IdentifyType(const FileSys::VirtualFile& file,
                                      Core::Crypto::KeyManager& keys) {
-    FileSys::XCI xci(file);
+    FileSys::XCI xci(file, keys);
 
     if (xci.GetStatus() == ResultStatus::Success &&
         xci.GetNCAByType(FileSys::NCAContentType::Program) != nullptr &&

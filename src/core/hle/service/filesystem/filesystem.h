@@ -6,6 +6,7 @@
 
 #include <memory>
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "core/file_sys/directory.h"
 #include "core/file_sys/vfs.h"
 #include "core/hle/result.h"
@@ -85,7 +86,7 @@ public:
     void WriteSaveDataSize(FileSys::SaveDataType type, u64 title_id, u128 user_id,
                            FileSys::SaveDataSize new_value) const;
 
-    void SetGameCard(FileSys::VirtualFile file);
+    void SetGameCard(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
     FileSys::XCI* GetGameCard() const;
 
     FileSys::RegisteredCache* GetSystemNANDContents() const;

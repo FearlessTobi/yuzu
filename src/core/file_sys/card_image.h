@@ -75,7 +75,7 @@ enum class XCIPartition : u8 { Update, Normal, Secure, Logo };
 
 class XCI : public ReadOnlyVfsDirectory {
 public:
-    explicit XCI(VirtualFile file);
+    explicit XCI(VirtualFile file, Core::Crypto::KeyManager& keys);
     ~XCI() override;
 
     Loader::ResultStatus GetStatus() const;
@@ -140,6 +140,6 @@ private:
 
     u64 update_normal_partition_end;
 
-    Core::Crypto::KeyManager keys;
+    Core::Crypto::KeyManager& keys;
 };
 } // namespace FileSys

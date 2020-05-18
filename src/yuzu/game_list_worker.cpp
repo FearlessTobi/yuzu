@@ -317,7 +317,7 @@ void GameListWorker::ScanFileSystem(ScanTarget target, const std::string& dir_pa
                             file_type == Loader::FileType::NSP)) {
                     const auto nsp = file_type == Loader::FileType::NSP
                                          ? std::make_shared<FileSys::NSP>(file, keys)
-                                         : FileSys::XCI{file}.GetSecurePartitionNSP();
+                                         : FileSys::XCI{file, keys}.GetSecurePartitionNSP();
                     for (const auto& title : nsp->GetNCAs()) {
                         for (const auto& entry : title.second) {
                             provider->AddEntry(entry.first.first, entry.first.second, title.first,

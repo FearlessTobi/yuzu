@@ -227,10 +227,10 @@ struct System::Impl {
 
         if (Settings::values.gamecard_inserted) {
             if (Settings::values.gamecard_current_game) {
-                fs_controller.SetGameCard(GetGameFileFromPath(virtual_filesystem, filepath));
+                fs_controller.SetGameCard(GetGameFileFromPath(virtual_filesystem, filepath), keys);
             } else if (!Settings::values.gamecard_path.empty()) {
                 fs_controller.SetGameCard(
-                    GetGameFileFromPath(virtual_filesystem, Settings::values.gamecard_path));
+                    GetGameFileFromPath(virtual_filesystem, Settings::values.gamecard_path), keys);
             }
         }
 
