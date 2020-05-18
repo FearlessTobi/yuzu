@@ -1299,7 +1299,7 @@ void GMainWindow::OnGameListDumpRomFS(u64 program_id, const std::string& game_pa
                                 "cancelled the operation."));
     };
 
-    const auto loader = Loader::GetLoader(vfs->OpenFile(game_path, FileSys::Mode::Read));
+    const auto loader = Loader::GetLoader(vfs->OpenFile(game_path, FileSys::Mode::Read), keys);
     if (loader == nullptr) {
         failed();
         return;
@@ -1441,7 +1441,7 @@ void GMainWindow::OnGameListShowList(bool show) {
 void GMainWindow::OnGameListOpenPerGameProperties(const std::string& file) {
     u64 title_id{};
     const auto v_file = Core::GetGameFileFromPath(vfs, file);
-    const auto loader = Loader::GetLoader(v_file);
+    const auto loader = Loader::GetLoader(v_file, keys);
     if (loader == nullptr || loader->ReadProgramId(title_id) != Loader::ResultStatus::Success) {
         QMessageBox::information(this, tr("Properties"),
                                  tr("The game properties could not be loaded."));

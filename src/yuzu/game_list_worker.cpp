@@ -258,7 +258,7 @@ void GameListWorker::AddTitlesToGameList(GameListDir* parent_dir) {
             continue;
 
         const auto file = cache.GetEntryUnparsed(game.title_id, game.type);
-        std::unique_ptr<Loader::AppLoader> loader = Loader::GetLoader(file);
+        std::unique_ptr<Loader::AppLoader> loader = Loader::GetLoader(file, keys);
         if (!loader)
             continue;
 
@@ -280,10 +280,9 @@ void GameListWorker::AddTitlesToGameList(GameListDir* parent_dir) {
 
 void GameListWorker::ScanFileSystem(ScanTarget target, const std::string& dir_path,
                                     unsigned int recursion, GameListDir* parent_dir) {
-    Core::Crypto::KeyManager keys;
-    const auto callback = [this, target, recursion, parent_dir,
-                           keys](u64* num_entries_out, const std::string& directory,
-                                 const std::string& virtual_name) -> bool {
+    const auto callback = [this, target, recursion,
+                           parent_dir](u64* num_entries_out, const std::string& directory,
+                                       const std::string& virtual_name) -> bool {
         if (stop_processing) {
             // Breaks the callback loop.
             return false;
@@ -294,7 +293,7 @@ void GameListWorker::ScanFileSystem(ScanTarget target, const std::string& dir_pa
         if (!is_dir &&
             (HasSupportedFileExtension(physical_name) || IsExtractedNCAMain(physical_name))) {
             const auto file = vfs->OpenFile(physical_name, FileSys::Mode::Read);
-            auto loader = Loader::GetLoader(file);
+            auto loader = Loader::GetLoader(file, keys);
             if (!loader) {
                 return true;
             }

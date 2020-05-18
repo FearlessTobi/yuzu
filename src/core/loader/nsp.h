@@ -22,7 +22,7 @@ class AppLoader_NCA;
 /// Loads an XCI file
 class AppLoader_NSP final : public AppLoader {
 public:
-    explicit AppLoader_NSP(FileSys::VirtualFile file);
+    explicit AppLoader_NSP(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
     ~AppLoader_NSP() override;
 
     /**
@@ -30,10 +30,10 @@ public:
      * @param file std::shared_ptr<VfsFile> open file
      * @return FileType found, or FileType::Error if this loader doesn't know it
      */
-    static FileType IdentifyType(const FileSys::VirtualFile& file);
+    static FileType IdentifyType(const FileSys::VirtualFile& file, Core::Crypto::KeyManager& keys);
 
     FileType GetFileType() const override {
-        return IdentifyType(file);
+        return IdentifyType(file, keys);
     }
 
     LoadResult Load(Kernel::Process& process) override;
@@ -60,7 +60,7 @@ private:
     std::unique_ptr<FileSys::NACP> nacp_file;
     u64 title_id;
 
-    Core::Crypto::KeyManager keys;
+    Core::Crypto::KeyManager& keys;
 };
 
 } // namespace Loader

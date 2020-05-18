@@ -13,6 +13,7 @@
 
 #include "common/common_types.h"
 #include "core/core.h"
+#include "core/crypto/key_manager.h"
 #include "core/hle/service/acc/profile_manager.h"
 #include "ui_main.h"
 #include "yuzu/compatibility_list.h"
@@ -251,6 +252,7 @@ private:
     // FS
     std::shared_ptr<FileSys::VfsFilesystem> vfs;
     std::unique_ptr<FileSys::ManualContentProvider> provider;
+    Core::Crypto::KeyManager keys;
 
     // Debugger panes
     ProfilerWidget* profilerWidget;

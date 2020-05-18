@@ -16,13 +16,13 @@
 
 namespace Loader {
 
-AppLoader_NCA::AppLoader_NCA(FileSys::VirtualFile file_)
-    : AppLoader(std::move(file_)), nca(std::make_unique<FileSys::NCA>(file)) {}
+AppLoader_NCA::AppLoader_NCA(FileSys::VirtualFile file_, Core::Crypto::KeyManager& keys)
+    : AppLoader(std::move(file_)), nca(std::make_unique<FileSys::NCA>(file)), keys{keys} {}
 
 AppLoader_NCA::~AppLoader_NCA() = default;
 
-FileType AppLoader_NCA::IdentifyType(const FileSys::VirtualFile& file) {
-    Core::Crypto::KeyManager keys;
+FileType AppLoader_NCA::IdentifyType(const FileSys::VirtualFile& file,
+                                     Core::Crypto::KeyManager& keys) {
     FileSys::NCA nca(file, keys);
 
     if (nca.GetStatus() == ResultStatus::Success &&

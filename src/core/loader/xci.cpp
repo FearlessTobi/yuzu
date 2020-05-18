@@ -20,9 +20,9 @@
 
 namespace Loader {
 
-AppLoader_XCI::AppLoader_XCI(FileSys::VirtualFile file)
-    : AppLoader(file), xci(std::make_unique<FileSys::XCI>(file)),
-      nca_loader(std::make_unique<AppLoader_NCA>(xci->GetProgramNCAFile())) {
+AppLoader_XCI::AppLoader_XCI(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys)
+    : AppLoader(file), xci(std::make_unique<FileSys::XCI>(file)), keys{keys},
+      nca_loader(std::make_unique<AppLoader_NCA>(xci->GetProgramNCAFile(), keys)) {
     if (xci->GetStatus() != ResultStatus::Success)
         return;
 
@@ -36,12 +36,13 @@ AppLoader_XCI::AppLoader_XCI(FileSys::VirtualFile file)
 
 AppLoader_XCI::~AppLoader_XCI() = default;
 
-FileType AppLoader_XCI::IdentifyType(const FileSys::VirtualFile& file) {
+FileType AppLoader_XCI::IdentifyType(const FileSys::VirtualFile& file,
+                                     Core::Crypto::KeyManager& keys) {
     FileSys::XCI xci(file);
 
     if (xci.GetStatus() == ResultStatus::Success &&
         xci.GetNCAByType(FileSys::NCAContentType::Program) != nullptr &&
-        AppLoader_NCA::IdentifyType(xci.GetNCAFileByType(FileSys::NCAContentType::Program)) ==
+        AppLoader_NCA::IdentifyType(xci.GetNCAFileByType(FileSys::NCAContentType::Program), keys) ==
             FileType::NCA) {
         return FileType::XCI;
     }

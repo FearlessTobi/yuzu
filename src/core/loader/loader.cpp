@@ -21,7 +21,7 @@
 
 namespace Loader {
 
-FileType IdentifyFile(FileSys::VirtualFile file) {
+FileType IdentifyFile(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys) {
     FileType type;
 
 #define CHECK_TYPE(loader)                                                                         \
@@ -29,17 +29,23 @@ FileType IdentifyFile(FileSys::VirtualFile file) {
     if (FileType::Error != type)                                                                   \
         return type;
 
+#define CHECK_TYPE_NEW(loader)                                                                     \
+    type = AppLoader_##loader::IdentifyType(file, keys);                                           \
+    if (FileType::Error != type)                                                                   \
+        return type;
+
     CHECK_TYPE(DeconstructedRomDirectory)
     CHECK_TYPE(ELF)
     CHECK_TYPE(NSO)
     CHECK_TYPE(NRO)
-    CHECK_TYPE(NCA)
-    CHECK_TYPE(XCI)
+    CHECK_TYPE_NEW(NCA)
+    CHECK_TYPE_NEW(XCI)
     CHECK_TYPE(NAX)
-    CHECK_TYPE(NSP)
+    CHECK_TYPE_NEW(NSP)
     CHECK_TYPE(KIP)
 
 #undef CHECK_TYPE
+#undef CHECK_TYPE_NEW
 
     return FileType::Unknown;
 }
@@ -184,9 +190,9 @@ AppLoader::~AppLoader() = default;
  * @param type the file type
  * @return std::unique_ptr<AppLoader> a pointer to a loader object;  nullptr for unsupported type
  */
-static std::unique_ptr<AppLoader> GetFileLoader(FileSys::VirtualFile file, FileType type) {
+static std::unique_ptr<AppLoader> GetFileLoader(FileSys::VirtualFile file, FileType type,
+                                                Core::Crypto::KeyManager& keys) {
     switch (type) {
-
     // Standard ELF file format.
     case FileType::ELF:
         return std::make_unique<AppLoader_ELF>(std::move(file));
@@ -201,19 +207,19 @@ static std::unique_ptr<AppLoader> GetFileLoader(FileSys::VirtualFile file, FileT
 
     // NX NCA (Nintendo Content Archive) file format.
     case FileType::NCA:
-        return std::make_unique<AppLoader_NCA>(std::move(file));
+        return std::make_unique<AppLoader_NCA>(std::move(file), keys);
 
     // NX XCI (nX Card Image) file format.
     case FileType::XCI:
-        return std::make_unique<AppLoader_XCI>(std::move(file));
+        return std::make_unique<AppLoader_XCI>(std::move(file), keys);
 
     // NX NAX (NintendoAesXts) file format.
     case FileType::NAX:
-        return std::make_unique<AppLoader_NAX>(std::move(file));
+        return std::make_unique<AppLoader_NAX>(std::move(file), keys);
 
     // NX NSP (Nintendo Submission Package) file format
     case FileType::NSP:
-        return std::make_unique<AppLoader_NSP>(std::move(file));
+        return std::make_unique<AppLoader_NSP>(std::move(file), keys);
 
     // NX KIP (Kernel Internal Process) file format
     case FileType::KIP:
@@ -228,8 +234,8 @@ static std::unique_ptr<AppLoader> GetFileLoader(FileSys::VirtualFile file, FileT
     }
 }
 
-std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file) {
-    FileType type = IdentifyFile(file);
+std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys) {
+    FileType type = IdentifyFile(file, keys);
     FileType filename_type = GuessFromFilename(file->GetName());
 
     // Special case: 00 is either a NCA or NAX.
@@ -241,7 +247,7 @@ std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file) {
 
     LOG_DEBUG(Loader, "Loading file {} as {}...", file->GetName(), GetFileTypeString(type));
 
-    return GetFileLoader(std::move(file), type);
+    return GetFileLoader(std::move(file), type, keys);
 }
 
 } // namespace Loader

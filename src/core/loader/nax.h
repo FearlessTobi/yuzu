@@ -6,6 +6,7 @@
 
 #include <memory>
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "core/loader/loader.h"
 
 namespace FileSys {
@@ -21,7 +22,7 @@ class AppLoader_NCA;
 /// Loads a NAX file
 class AppLoader_NAX final : public AppLoader {
 public:
-    explicit AppLoader_NAX(FileSys::VirtualFile file);
+    explicit AppLoader_NAX(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
     ~AppLoader_NAX() override;
 
     /**
@@ -47,6 +48,7 @@ public:
 private:
     std::unique_ptr<FileSys::NAX> nax;
     std::unique_ptr<AppLoader_NCA> nca_loader;
+    Core::Crypto::KeyManager& keys;
 };
 
 } // namespace Loader

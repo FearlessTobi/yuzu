@@ -21,9 +21,9 @@
 
 namespace Loader {
 
-AppLoader_NSP::AppLoader_NSP(FileSys::VirtualFile file)
+AppLoader_NSP::AppLoader_NSP(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys)
     : AppLoader(file), nsp(std::make_unique<FileSys::NSP>(file)),
-      title_id(nsp->GetProgramTitleID()) {
+      title_id(nsp->GetProgramTitleID()), keys{keys} {
 
     if (nsp->GetStatus() != ResultStatus::Success)
         return;
@@ -43,13 +43,14 @@ AppLoader_NSP::AppLoader_NSP(FileSys::VirtualFile file)
             return;
 
         secondary_loader = std::make_unique<AppLoader_NCA>(
-            nsp->GetNCAFile(title_id, FileSys::ContentRecordType::Program));
+            nsp->GetNCAFile(title_id, FileSys::ContentRecordType::Program), keys);
     }
 }
 
 AppLoader_NSP::~AppLoader_NSP() = default;
 
-FileType AppLoader_NSP::IdentifyType(const FileSys::VirtualFile& file) {
+FileType AppLoader_NSP::IdentifyType(const FileSys::VirtualFile& file,
+                                     Core::Crypto::KeyManager& keys) {
     FileSys::NSP nsp(file);
 
     if (nsp.GetStatus() == ResultStatus::Success) {
@@ -62,8 +63,9 @@ FileType AppLoader_NSP::IdentifyType(const FileSys::VirtualFile& file) {
         // Non-Extracted Type case
         if (!nsp.IsExtractedType() &&
             nsp.GetNCA(nsp.GetFirstTitleID(), FileSys::ContentRecordType::Program) != nullptr &&
-            AppLoader_NCA::IdentifyType(nsp.GetNCAFile(
-                nsp.GetFirstTitleID(), FileSys::ContentRecordType::Program)) == FileType::NCA) {
+            AppLoader_NCA::IdentifyType(
+                nsp.GetNCAFile(nsp.GetFirstTitleID(), FileSys::ContentRecordType::Program), keys) ==
+                FileType::NCA) {
             return FileType::NSP;
         }
     }

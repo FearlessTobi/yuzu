@@ -17,6 +17,7 @@
 #include <QVector>
 
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "yuzu/compatibility_list.h"
 
 class QStandardItem;
@@ -80,4 +81,5 @@ private:
 
     QStringList watch_list;
     std::atomic_bool stop_processing;
+    Core::Crypto::KeyManager keys;
 };

@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "common/common_types.h"
+#include "core/crypto/key_manager.h"
 #include "core/file_sys/control_metadata.h"
 #include "core/file_sys/vfs.h"
 
@@ -46,7 +47,7 @@ enum class FileType {
  * @param file open file
  * @return FileType of file
  */
-FileType IdentifyFile(FileSys::VirtualFile file);
+FileType IdentifyFile(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
 
 /**
  * Guess the type of a bootable file from its name
@@ -288,6 +289,6 @@ protected:
  * @param file The bootable file
  * @return the best loader for this file
  */
-std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file);
+std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
 
 } // namespace Loader

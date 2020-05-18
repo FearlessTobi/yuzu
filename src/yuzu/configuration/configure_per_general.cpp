@@ -118,7 +118,9 @@ void ConfigurePerGameGeneral::LoadConfiguration() {
 
     FileSys::PatchManager pm{title_id};
     const auto control = pm.GetControlMetadata();
-    const auto loader = Loader::GetLoader(file);
+
+    Core::Crypto::KeyManager keys;
+    const auto loader = Loader::GetLoader(file, keys);
 
     if (control.first != nullptr) {
         ui->display_version->setText(QString::fromStdString(control.first->GetVersionString()));

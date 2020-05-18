@@ -21,7 +21,7 @@
 namespace FileSys {
 namespace {
 void SetTicketKeys(const std::vector<VirtualFile>& files) {
-    Core::Crypto::KeyManager keys;
+    /*Core::Crypto::KeyManager keys;
 
     for (const auto& ticket_file : files) {
         if (ticket_file == nullptr) {
@@ -48,7 +48,7 @@ void SetTicketKeys(const std::vector<VirtualFile>& files) {
         u128 rights_id;
         std::memcpy(rights_id.data(), rights_id_raw.data(), sizeof(u128));
         keys.SetKey(Core::Crypto::S128KeyType::Titlekey, key, rights_id[1], rights_id[0]);
-    }
+    }*/
 }
 } // Anonymous namespace
 

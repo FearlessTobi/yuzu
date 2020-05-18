@@ -187,7 +187,8 @@ struct System::Impl {
 
     ResultStatus Load(System& system, Frontend::EmuWindow& emu_window,
                       const std::string& filepath) {
-        app_loader = Loader::GetLoader(GetGameFileFromPath(virtual_filesystem, filepath));
+        Core::Crypto::KeyManager keys;
+        app_loader = Loader::GetLoader(GetGameFileFromPath(virtual_filesystem, filepath), keys);
         if (!app_loader) {
             LOG_CRITICAL(Core, "Failed to obtain loader for {}!", filepath);
             return ResultStatus::ErrorGetLoader;

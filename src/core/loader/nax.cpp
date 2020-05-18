@@ -26,9 +26,9 @@ FileType IdentifyTypeImpl(const FileSys::NAX& nax) {
 }
 } // Anonymous namespace
 
-AppLoader_NAX::AppLoader_NAX(FileSys::VirtualFile file)
-    : AppLoader(file), nax(std::make_unique<FileSys::NAX>(file)),
-      nca_loader(std::make_unique<AppLoader_NCA>(nax->GetDecrypted())) {}
+AppLoader_NAX::AppLoader_NAX(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys)
+    : AppLoader(file), nax(std::make_unique<FileSys::NAX>(file)), keys{keys},
+      nca_loader(std::make_unique<AppLoader_NCA>(nax->GetDecrypted(), keys)) {}
 
 AppLoader_NAX::~AppLoader_NAX() = default;
 
