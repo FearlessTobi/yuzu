@@ -39,7 +39,8 @@ ResultVal<VirtualFile> RomFSFactory::OpenCurrentProcess(u64 current_process_titl
     if (!updatable)
         return MakeResult<VirtualFile>(file);
 
-    const PatchManager patch_manager(current_process_title_id);
+    Core::Crypto::KeyManager keys;
+    const PatchManager patch_manager(current_process_title_id, keys);
     return MakeResult<VirtualFile>(
         patch_manager.PatchRomFS(file, ivfc_offset, ContentRecordType::Program, update_raw));
 }

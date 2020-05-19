@@ -48,8 +48,9 @@ std::string FormatTitleVersion(u32 version, TitleVersionFormat format) {
     return fmt::format("v{}.{}.{}", bytes[3], bytes[2], bytes[1]);
 }
 
-PatchManager::PatchManager(u64 title_id) : title_id(title_id) {
-    LOG_WARNING(Frontend, "Patch Manager!");
+PatchManager::PatchManager(u64 title_id, Core::Crypto::KeyManager& keys)
+    : title_id(title_id), keys{keys} {
+    //LOG_WARNING(Frontend, "Patch Manager!");
 }
 
 PatchManager::~PatchManager() = default;
@@ -441,7 +442,7 @@ std::map<std::string, std::string, std::less<>> PatchManager::GetPatchVersionNam
 
     // Game Updates
     const auto update_tid = GetUpdateTitleID(title_id);
-    PatchManager update{update_tid};
+    PatchManager update{update_tid, keys};
     const auto metadata = update.GetControlMetadata();
     const auto& nacp = metadata.first;
 

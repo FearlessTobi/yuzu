@@ -297,7 +297,8 @@ void IApplicationManagerInterface::GetApplicationControlData(Kernel::HLERequestC
 
     const auto size = ctx.GetWriteBufferSize();
 
-    const FileSys::PatchManager pm{title_id};
+    Core::Crypto::KeyManager keys;
+    const FileSys::PatchManager pm{title_id, keys};
     const auto control = pm.GetControlMetadata();
 
     std::vector<u8> out;

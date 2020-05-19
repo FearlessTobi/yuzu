@@ -396,7 +396,8 @@ void Module::Interface::IsUserAccountSwitchLocked(Kernel::HLERequestContext& ctx
     bool is_locked = false;
 
     if (res != Loader::ResultStatus::Success) {
-        FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID()};
+        Core::Crypto::KeyManager keys;
+        FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID(), keys};
         auto nacp_unique = pm.GetControlMetadata().first;
 
         if (nacp_unique != nullptr) {

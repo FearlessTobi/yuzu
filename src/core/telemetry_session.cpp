@@ -165,7 +165,8 @@ void TelemetrySession::AddInitialInfo(Loader::AppLoader& app_loader) {
         app_loader.ReadTitle(name);
 
         if (name.empty()) {
-            const auto metadata = FileSys::PatchManager(program_id).GetControlMetadata();
+            Core::Crypto::KeyManager keys;
+            const auto metadata = FileSys::PatchManager(program_id, keys).GetControlMetadata();
             if (metadata.first != nullptr) {
                 name = metadata.first->GetApplicationName();
             }

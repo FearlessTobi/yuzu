@@ -1339,7 +1339,8 @@ void IApplicationFunctions::GetDisplayVersion(Kernel::HLERequestContext& ctx) {
 
     std::array<u8, 0x10> version_string{};
 
-    FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID()};
+    Core::Crypto::KeyManager keys;
+    FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID(), keys};
     const auto res = pm.GetControlMetadata();
     if (res.first != nullptr) {
         const auto& version = res.first->GetVersionString();
@@ -1361,7 +1362,8 @@ void IApplicationFunctions::GetDesiredLanguage(Kernel::HLERequestContext& ctx) {
     // Get supported languages from NACP, if possible
     // Default to 0 (all languages supported)
     u32 supported_languages = 0;
-    FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID()};
+    Core::Crypto::KeyManager keys;
+    FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID(), keys};
 
     const auto res = pm.GetControlMetadata();
     if (res.first != nullptr) {

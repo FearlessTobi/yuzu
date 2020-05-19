@@ -33,7 +33,7 @@ std::string FormatTitleVersion(u32 version,
 // A centralized class to manage patches to games.
 class PatchManager {
 public:
-    explicit PatchManager(u64 title_id);
+    explicit PatchManager(u64 title_id, Core::Crypto::KeyManager& keys);
     ~PatchManager();
 
     u64 GetTitleID() const;
@@ -85,7 +85,7 @@ private:
 
     u64 title_id;
 
-    Core::Crypto::KeyManager keys;
+    Core::Crypto::KeyManager& keys;
 };
 
 } // namespace FileSys

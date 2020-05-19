@@ -316,7 +316,8 @@ struct System::Impl {
         Service::Glue::ApplicationLaunchProperty launch{};
         launch.title_id = process.GetTitleID();
 
-        FileSys::PatchManager pm{launch.title_id};
+        Core::Crypto::KeyManager keys;
+        FileSys::PatchManager pm{launch.title_id, keys};
         launch.version = pm.GetGameVersion().value_or(0);
 
         // TODO(DarkLordZach): When FSController/Game Card Support is added, if

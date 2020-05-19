@@ -267,7 +267,7 @@ void GameListWorker::AddTitlesToGameList(GameListDir* parent_dir) {
         u64 program_id = 0;
         loader->ReadProgramId(program_id);
 
-        const PatchManager patch{program_id};
+        const PatchManager patch{program_id, keys};
         const auto control = cache.GetEntry(game.title_id, ContentRecordType::Control);
         if (control != nullptr)
             GetMetadataFromControlNCA(patch, *control, icon, name);
@@ -332,7 +332,7 @@ void GameListWorker::ScanFileSystem(ScanTarget target, const std::string& dir_pa
                 std::string name = " ";
                 [[maybe_unused]] const auto res3 = loader->ReadTitle(name);
 
-                const FileSys::PatchManager patch{program_id};
+                const FileSys::PatchManager patch{program_id, keys};
 
                 emit EntryReady(MakeGameListEntry(physical_name, name, icon, *loader, program_id,
                                                   compatibility_list, patch),

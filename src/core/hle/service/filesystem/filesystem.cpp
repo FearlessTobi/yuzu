@@ -450,7 +450,8 @@ FileSys::SaveDataSize FileSystemController::ReadSaveDataSize(FileSys::SaveDataTy
         const auto res = system.GetAppLoader().ReadControlData(nacp);
 
         if (res != Loader::ResultStatus::Success) {
-            FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID()};
+            Core::Crypto::KeyManager keys;
+            FileSys::PatchManager pm{system.CurrentProcess()->GetTitleID(), keys};
             const auto metadata = pm.GetControlMetadata();
             const auto& nacp_unique = metadata.first;
 

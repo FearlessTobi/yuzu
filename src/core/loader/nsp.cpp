@@ -37,7 +37,7 @@ AppLoader_NSP::AppLoader_NSP(FileSys::VirtualFile file, Core::Crypto::KeyManager
             return;
 
         std::tie(nacp_file, icon_file) =
-            FileSys::PatchManager(nsp->GetProgramTitleID()).ParseControlNCA(*control_nca);
+            FileSys::PatchManager(nsp->GetProgramTitleID(), keys).ParseControlNCA(*control_nca);
 
         if (title_id == 0)
             return;

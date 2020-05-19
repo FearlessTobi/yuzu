@@ -1034,7 +1034,7 @@ void GMainWindow::BootGame(const QString& filename) {
     std::string title_name;
     const auto res = Core::System::GetInstance().GetGameName(title_name);
     if (res != Loader::ResultStatus::Success) {
-        const auto metadata = FileSys::PatchManager(title_id).GetControlMetadata();
+        const auto metadata = FileSys::PatchManager(title_id, keys).GetControlMetadata();
         if (metadata.first != nullptr)
             title_name = metadata.first->GetApplicationName();
 
@@ -1326,7 +1326,7 @@ void GMainWindow::OnGameListDumpRomFS(u64 program_id, const std::string& game_pa
 
     if (*romfs_title_id == program_id) {
         const u64 ivfc_offset = loader->ReadRomFSIVFCOffset();
-        FileSys::PatchManager pm{program_id};
+        FileSys::PatchManager pm{program_id, keys};
         romfs = pm.PatchRomFS(file, ivfc_offset, FileSys::ContentRecordType::Program);
     } else {
         romfs = installed.GetEntry(*romfs_title_id, FileSys::ContentRecordType::Data)->GetRomFS();

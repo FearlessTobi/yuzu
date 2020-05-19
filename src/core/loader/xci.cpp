@@ -30,9 +30,8 @@ AppLoader_XCI::AppLoader_XCI(FileSys::VirtualFile file, Core::Crypto::KeyManager
     if (control_nca == nullptr || control_nca->GetStatus() != ResultStatus::Success)
         return;
 
-    // TODO: PatchManager
     std::tie(nacp_file, icon_file) =
-        FileSys::PatchManager(xci->GetProgramTitleID()).ParseControlNCA(*control_nca);
+        FileSys::PatchManager(xci->GetProgramTitleID(), keys).ParseControlNCA(*control_nca);
 }
 
 AppLoader_XCI::~AppLoader_XCI() = default;

@@ -943,7 +943,8 @@ void FSP_SRV::OpenDataStorageByDataId(Kernel::HLERequestContext& ctx) {
         return;
     }
 
-    FileSys::PatchManager pm{title_id};
+    Core::Crypto::KeyManager keys;
+    FileSys::PatchManager pm{title_id, keys};
 
     auto storage = std::make_shared<IStorage>(
         pm.PatchRomFS(std::move(data.Unwrap()), 0, FileSys::ContentRecordType::Data));

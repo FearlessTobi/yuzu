@@ -116,10 +116,10 @@ void ConfigurePerGameGeneral::LoadConfiguration() {
 
     ui->display_title_id->setText(QString::fromStdString(fmt::format("{:016X}", title_id)));
 
-    FileSys::PatchManager pm{title_id};
+    Core::Crypto::KeyManager keys;
+    FileSys::PatchManager pm{title_id, keys};
     const auto control = pm.GetControlMetadata();
 
-    Core::Crypto::KeyManager keys;
     const auto loader = Loader::GetLoader(file, keys);
 
     if (control.first != nullptr) {
