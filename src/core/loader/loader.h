@@ -47,7 +47,7 @@ enum class FileType {
  * @param file open file
  * @return FileType of file
  */
-FileType IdentifyFile(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
+FileType IdentifyFile(FileSys::VirtualFile file, const Core::Crypto::KeyManager& keys);
 
 /**
  * Guess the type of a bootable file from its name
@@ -289,6 +289,7 @@ protected:
  * @param file The bootable file
  * @return the best loader for this file
  */
-std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
+std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file,
+                                     const Core::Crypto::KeyManager& keys);
 
 } // namespace Loader

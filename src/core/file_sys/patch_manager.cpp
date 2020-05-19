@@ -48,9 +48,9 @@ std::string FormatTitleVersion(u32 version, TitleVersionFormat format) {
     return fmt::format("v{}.{}.{}", bytes[3], bytes[2], bytes[1]);
 }
 
-PatchManager::PatchManager(u64 title_id, Core::Crypto::KeyManager& keys)
+PatchManager::PatchManager(u64 title_id, const Core::Crypto::KeyManager& keys)
     : title_id(title_id), keys{keys} {
-    //LOG_WARNING(Frontend, "Patch Manager!");
+    // LOG_WARNING(Frontend, "Patch Manager!");
 }
 
 PatchManager::~PatchManager() = default;

@@ -280,6 +280,7 @@ void GameListWorker::AddTitlesToGameList(GameListDir* parent_dir) {
 
 void GameListWorker::ScanFileSystem(ScanTarget target, const std::string& dir_path,
                                     unsigned int recursion, GameListDir* parent_dir) {
+    // LOG_ERROR(Frontend, "keys!");
     const auto callback = [this, target, recursion,
                            parent_dir](u64* num_entries_out, const std::string& directory,
                                        const std::string& virtual_name) -> bool {

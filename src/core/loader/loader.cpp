@@ -21,7 +21,7 @@
 
 namespace Loader {
 
-FileType IdentifyFile(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys) {
+FileType IdentifyFile(FileSys::VirtualFile file, const Core::Crypto::KeyManager& keys) {
     FileType type;
 
 #define CHECK_TYPE(loader)                                                                         \
@@ -191,7 +191,7 @@ AppLoader::~AppLoader() = default;
  * @return std::unique_ptr<AppLoader> a pointer to a loader object;  nullptr for unsupported type
  */
 static std::unique_ptr<AppLoader> GetFileLoader(FileSys::VirtualFile file, FileType type,
-                                                Core::Crypto::KeyManager& keys) {
+                                                const Core::Crypto::KeyManager& keys) {
     switch (type) {
     // Standard ELF file format.
     case FileType::ELF:
@@ -234,7 +234,8 @@ static std::unique_ptr<AppLoader> GetFileLoader(FileSys::VirtualFile file, FileT
     }
 }
 
-std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys) {
+std::unique_ptr<AppLoader> GetLoader(FileSys::VirtualFile file,
+                                     const Core::Crypto::KeyManager& keys) {
     FileType type = IdentifyFile(file, keys);
     FileType filename_type = GuessFromFilename(file->GetName());
 

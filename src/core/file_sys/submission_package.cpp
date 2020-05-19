@@ -52,7 +52,7 @@ void SetTicketKeys(const std::vector<VirtualFile>& files) {
 }
 } // Anonymous namespace
 
-NSP::NSP(VirtualFile file_, Core::Crypto::KeyManager& keys)
+NSP::NSP(VirtualFile file_, const Core::Crypto::KeyManager& keys)
     : file(std::move(file_)), status{Loader::ResultStatus::Success},
       pfs(std::make_shared<PartitionFilesystem>(file)), keys{keys} {
     if (pfs->GetStatus() != Loader::ResultStatus::Success) {

@@ -484,7 +484,7 @@ std::optional<std::pair<Key128, Key128>> ParseTicket(const Ticket& ticket,
 }
 
 KeyManager::KeyManager() {
-    LOG_CRITICAL(Frontend, "CALLED");
+    // LOG_CRITICAL(Frontend, "CALLED");
 
     // Initialize keys
     const std::string hactool_keys_dir = FileUtil::GetHactoolConfigurationPath();

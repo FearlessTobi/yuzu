@@ -22,7 +22,7 @@ class AppLoader_NCA;
 /// Loads a NAX file
 class AppLoader_NAX final : public AppLoader {
 public:
-    explicit AppLoader_NAX(FileSys::VirtualFile file, Core::Crypto::KeyManager& keys);
+    explicit AppLoader_NAX(FileSys::VirtualFile file, const Core::Crypto::KeyManager& keys);
     ~AppLoader_NAX() override;
 
     /**
@@ -48,7 +48,7 @@ public:
 private:
     std::unique_ptr<FileSys::NAX> nax;
     std::unique_ptr<AppLoader_NCA> nca_loader;
-    Core::Crypto::KeyManager& keys;
+    const Core::Crypto::KeyManager& keys;
 };
 
 } // namespace Loader

@@ -23,7 +23,7 @@ enum class ContentRecordType : u8;
 
 class NSP : public ReadOnlyVfsDirectory {
 public:
-    explicit NSP(VirtualFile file, Core::Crypto::KeyManager& keys);
+    explicit NSP(VirtualFile file, const Core::Crypto::KeyManager& keys);
     ~NSP() override;
 
     Loader::ResultStatus GetStatus() const;
@@ -73,7 +73,7 @@ private:
     std::map<u64, std::map<std::pair<TitleType, ContentRecordType>, std::shared_ptr<NCA>>> ncas;
     std::vector<VirtualFile> ticket_files;
 
-    Core::Crypto::KeyManager& keys;
+    const Core::Crypto::KeyManager& keys;
 
     VirtualFile romfs;
     VirtualDir exefs;
