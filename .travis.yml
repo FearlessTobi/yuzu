@@ -42,6 +42,13 @@ matrix:
       script: "./.travis/linux-mingw/build.sh"
       after_success: "./.travis/linux-mingw/upload.sh"
       cache: ccache
+    - os: linux
+      env: NAME="transifex push"
+      sudo: required
+      dist: trusty
+      services: docker
+      install: "./.travis/transifex/deps.sh"
+      script: "./.travis/transifex/build.sh"
 
 deploy:
   provider: releases
