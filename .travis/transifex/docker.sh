@@ -11,6 +11,9 @@ EOF
 
 set -x
 
+apt-get install -y python3-pip
+pip3 install --upgrade pip transifex-client
+
 cat << 'EOF' > /usr/bin/tx
 #!/usr/bin/python3
 
