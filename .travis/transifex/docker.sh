@@ -11,6 +11,7 @@ EOF
 
 set -x
 
+sudo -i
 pip3 install --upgrade pip transifex-client
 
 cat << 'EOF' > /usr/bin/tx
