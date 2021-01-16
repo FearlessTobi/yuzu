@@ -136,6 +136,11 @@ if (ENABLE_QT)
     add_subdirectory(yuzu)
 endif()
 
+if (ANDROID)
+    include_directories(android/app/src/main)
+    add_subdirectory(android/app/src/main/jni)
+else()
+
 if (ENABLE_WEB_SERVICE)
     add_subdirectory(web_service)
 endif()
