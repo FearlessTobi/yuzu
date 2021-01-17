@@ -29,6 +29,7 @@
 #include "core/hle/kernel/process.h"
 #include "core/hle/service/filesystem/filesystem.h"
 #include "core/loader/loader.h"
+#include "core/online_initiator.h"
 #include "core/settings.h"
 #include "core/telemetry_session.h"
 #include "input_common/main.h"
@@ -197,11 +198,14 @@ int main(int argc, char** argv) {
 #endif
     }
 
+    Core::OnlineInitiator online_initiator;
+
     system.SetContentProvider(std::make_unique<FileSys::ContentProviderUnion>());
     system.SetFilesystem(std::make_shared<FileSys::RealVfsFilesystem>());
     system.GetFileSystemController().CreateFactories(*system.GetFilesystem());
 
-    const Core::System::ResultStatus load_result{system.Load(*emu_window, filepath)};
+    const Core::System::ResultStatus load_result{
+        system.Load(*emu_window, online_initiator, filepath)};
 
     switch (load_result) {
     case Core::System::ResultStatus::ErrorGetLoader:

@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <locale>
 #include <sstream>
-
 #include "common/common_paths.h"
 #include "common/logging/log.h"
 #include "common/string_util.h"
@@ -22,14 +21,14 @@ namespace Common {
 /// Make a string lowercase
 std::string ToLower(std::string str) {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                   [](unsigned char c) { return std::tolower(c); });
     return str;
 }
 
 /// Make a string uppercase
 std::string ToUpper(std::string str) {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+                   [](unsigned char c) { return std::toupper(c); });
     return str;
 }
 

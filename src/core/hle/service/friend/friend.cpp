@@ -2,24 +2,31 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <core/settings.h>
 #include <queue>
 #include "common/logging/log.h"
+#include "common/string_util.h"
 #include "common/uuid.h"
 #include "core/hle/ipc_helpers.h"
+#include "core/hle/kernel/process.h"
 #include "core/hle/kernel/readable_event.h"
 #include "core/hle/kernel/writable_event.h"
 #include "core/hle/service/friend/errors.h"
 #include "core/hle/service/friend/friend.h"
 #include "core/hle/service/friend/interface.h"
+#include "core/hle/service/friend/query_profile_list.h"
+#include "core/hle/service/sockets/blocking_worker.h"
+#include "core/online_initiator.h"
 
 namespace Service::Friend {
 
 class IFriendService final : public ServiceFramework<IFriendService> {
 public:
-    IFriendService() : ServiceFramework("IFriendService") {
+    explicit IFriendService(Core::System& system_)
+        : ServiceFramework("IFriendService"), system{system_}, worker_pool(system, this, "friend") {
         // clang-format off
         static const FunctionInfo functions[] = {
-            {0, nullptr, "GetCompletionEvent"},
+            {0, &IFriendService::GetCompletionEvent, "GetCompletionEvent"},
             {1, nullptr, "Cancel"},
             {10100, nullptr, "GetFriendListIds"},
             {10101, &IFriendService::GetFriendList, "GetFriendList"},
@@ -32,14 +39,14 @@ public:
             {10400, &IFriendService::GetBlockedUserListIds, "GetBlockedUserListIds"},
             {10420, nullptr, "Unknown10420"},
             {10421, nullptr, "Unknown10421"},
-            {10500, nullptr, "GetProfileList"},
+            {10500, &IFriendService::GetProfileList, "GetProfileList"},
             {10600, nullptr, "DeclareOpenOnlinePlaySession"},
             {10601, &IFriendService::DeclareCloseOnlinePlaySession, "DeclareCloseOnlinePlaySession"},
             {10610, &IFriendService::UpdateUserPresence, "UpdateUserPresence"},
             {10700, nullptr, "GetPlayHistoryRegistrationKey"},
             {10701, nullptr, "GetPlayHistoryRegistrationKeyWithNetworkServiceAccountId"},
             {10702, nullptr, "AddPlayHistory"},
-            {11000, nullptr, "GetProfileImageUrl"},
+            {11000, &IFriendService::GetProfileImageUrl, "GetProfileImageUrl"},
             {20100, nullptr, "GetFriendCount"},
             {20101, nullptr, "GetNewlyFriendCount"},
             {20102, nullptr, "GetFriendDetailedInfo"},
@@ -108,6 +115,9 @@ public:
         // clang-format on
 
         RegisterHandlers(functions);
+
+        auto& kernel = system.Kernel();
+        event_pair = Kernel::WritableEvent::CreateEventPair(kernel, "friend:GetProfileList");
     }
 
 private:
@@ -128,10 +138,67 @@ private:
     };
     static_assert(sizeof(SizedFriendFilter) == 0x10, "SizedFriendFilter is an invalid size");
 
+    void GetCompletionEvent(Kernel::HLERequestContext& ctx) {
+        LOG_DEBUG(Service, "called");
+
+        IPC::ResponseBuilder rb{ctx, 2, 1};
+        rb.Push(RESULT_SUCCESS);
+        rb.PushCopyObjects(event_pair.readable);
+    }
+
+    void GetProfileList(Kernel::HLERequestContext& ctx) {
+        IPC::RequestParser rp{ctx};
+        const u128 uid = rp.PopRaw<u128>();
+
+        LOG_DEBUG(Service, "called. uid={:016x}{:016x}", uid[0], uid[1]);
+
+        const auto account_list_raw = ctx.ReadBuffer();
+        std::vector<u64> account_id_list(account_list_raw.size() / sizeof(u64));
+        std::memcpy(account_id_list.data(), account_list_raw.data(),
+                    account_id_list.size() * sizeof(u64));
+
+        if (account_list_raw.empty()) {
+            // TODO: Return a valid error
+            LOG_ERROR(Service, "Empty account id list");
+            IPC::ResponseBuilder rb{ctx, 2};
+            rb.Push(RESULT_UNKNOWN);
+            return;
+        }
+        for (const u64 account_id : account_id_list) {
+            LOG_DEBUG(Service, "id={:016X}", account_id);
+        }
+
+        auto worker = worker_pool.CaptureWorker();
+        ctx.SleepClientThread("friend:GetProfileList", std::numeric_limits<u64>::max(),
+                              worker->Callback<GetProfileListWork>(), worker->KernelEvent());
+
+        const auto& online_initiator = system.OnlineInitiator();
+        const u64 title_id = system.CurrentProcess()->GetTitleID();
+        worker->SendWork(GetProfileListWork{
+            .online_initiator = &online_initiator,
+            .title_id = title_id,
+            .account_id_list = std::move(account_id_list),
+            .event = event_pair.writable,
+        });
+
+        // Dummy response, it will be overriden by SleepClientThread's response
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(RESULT_SUCCESS);
+    }
+
     void GetBlockedUserListIds(Kernel::HLERequestContext& ctx) {
-        // This is safe to stub, as there should be no adverse consequences from reporting no
-        // blocked users.
-        LOG_WARNING(Service_ACC, "(STUBBED) called");
+        LOG_DEBUG(Service_ACC, "called");
+
+        auto worker = worker_pool.CaptureWorker();
+        ctx.SleepClientThread("friend:GetBlockedUserListIds", std::numeric_limits<u64>::max(),
+                              worker->Callback<GetBlockedUsersWork>(), worker->KernelEvent());
+
+        const auto& online_initiator = system.OnlineInitiator();
+        worker->SendWork(GetBlockedUsersWork{
+            .online_initiator = &online_initiator,
+        });
+
+        // Dummy response, it will be overriden by SleepClientThread's response
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(RESULT_SUCCESS);
         rb.Push<u32>(0); // Indicates there are no blocked users
@@ -151,6 +218,31 @@ private:
         rb.Push(RESULT_SUCCESS);
     }
 
+    void GetProfileImageUrl(Kernel::HLERequestContext& ctx) {
+        static constexpr size_t MAX_SIZE = 0xa0;
+
+        IPC::RequestParser rp{ctx};
+        const auto raw_url = rp.PopRaw<std::array<char, MAX_SIZE>>();
+        const std::string size = std::to_string(rp.Pop<u32>());
+        std::string url = Common::StringFromFixedZeroTerminatedBuffer(raw_url.data(), MAX_SIZE);
+
+        LOG_DEBUG(Service_Friend, "called. url={} size={}", url, size);
+
+        for (size_t iteration = 0; iteration < 2; ++iteration) {
+            const auto pos = url.find_last_of('%');
+            if (pos != std::string::npos) {
+                url.replace(pos, 1, size);
+            }
+        }
+
+        std::array<char, MAX_SIZE> output_url{};
+        std::copy_n(url.begin(), output_url.size(), output_url.begin());
+
+        IPC::ResponseBuilder rb{ctx, 2 + MAX_SIZE / 4};
+        rb.Push(RESULT_SUCCESS);
+        rb.PushRaw(output_url);
+    }
+
     void GetFriendList(Kernel::HLERequestContext& ctx) {
         IPC::RequestParser rp{ctx};
         const auto friend_offset = rp.Pop<u32>();
@@ -160,12 +252,28 @@ private:
         LOG_WARNING(Service_ACC, "(STUBBED) called, offset={}, uuid={}, pid={}", friend_offset,
                     uuid.Format(), pid);
 
+        auto worker = worker_pool.CaptureWorker();
+        ctx.SleepClientThread("friend:GetFriendList", std::numeric_limits<u64>::max(),
+                              worker->Callback<GetFriendsListWork>(), worker->KernelEvent());
+
+        // TODO: Filter friends
+        const auto& online_initiator = system.OnlineInitiator();
+        worker->SendWork(GetFriendsListWork{
+            .online_initiator = &online_initiator,
+            .event = event_pair.writable,
+        });
+
+        // Dummy response, it will be overriden by SleepClientThread's response
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(RESULT_SUCCESS);
-
         rb.Push<u32>(0); // Friend count
-        // TODO(ogniK): Return a buffer of u64s which are the "NetworkServiceAccountId"
     }
+
+    Core::System& system;
+    Sockets::BlockingWorkerPool<IFriendService, GetProfileListWork, GetFriendsListWork,
+                                GetBlockedUsersWork>
+        worker_pool;
+    Kernel::EventPair event_pair;
 };
 
 class INotificationService final : public ServiceFramework<INotificationService> {
@@ -264,10 +372,11 @@ private:
 };
 
 void Module::Interface::CreateFriendService(Kernel::HLERequestContext& ctx) {
+    LOG_DEBUG(Service_ACC, "called");
+
     IPC::ResponseBuilder rb{ctx, 2, 0, 1};
     rb.Push(RESULT_SUCCESS);
-    rb.PushIpcInterface<IFriendService>();
-    LOG_DEBUG(Service_ACC, "called");
+    rb.PushIpcInterface<IFriendService>(system);
 }
 
 void Module::Interface::CreateNotificationService(Kernel::HLERequestContext& ctx) {

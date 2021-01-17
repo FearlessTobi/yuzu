@@ -5,6 +5,7 @@
 #include <array>
 #include <memory>
 #include <utility>
+#include <core/hle/service/sockets/sockets.h>
 
 #include "common/file_util.h"
 #include "common/logging/log.h"
@@ -45,6 +46,7 @@
 #include "core/memory.h"
 #include "core/memory/cheat_engine.h"
 #include "core/network/network.h"
+#include "core/online_initiator.h"
 #include "core/perf_stats.h"
 #include "core/reporter.h"
 #include "core/settings.h"
@@ -144,7 +146,8 @@ struct System::Impl {
         return status;
     }
 
-    ResultStatus Init(System& system, Frontend::EmuWindow& emu_window) {
+    ResultStatus Init(System& system, Frontend::EmuWindow& emu_window,
+                      Core::OnlineInitiator& online_initiator_) {
         LOG_DEBUG(HW_Memory, "initialized OK");
 
         device_memory = std::make_unique<Core::DeviceMemory>();
@@ -179,16 +182,19 @@ struct System::Impl {
         arp_manager.ResetAll();
 
         telemetry_session = std::make_unique<Core::TelemetrySession>();
+
+        gpu_core = VideoCore::CreateGPU(emu_window, system);
+        if (!gpu_core) {
+            return ResultStatus::ErrorVideoCore;
+        }
+
         service_manager = std::make_shared<Service::SM::ServiceManager>(kernel);
+        online_initiator = &online_initiator_;
 
         Service::Init(service_manager, system);
         GDBStub::DeferStart();
 
         interrupt_manager = std::make_unique<Core::Hardware::InterruptManager>(system);
-        gpu_core = VideoCore::CreateGPU(emu_window, system);
-        if (!gpu_core) {
-            return ResultStatus::ErrorVideoCore;
-        }
 
         // Initialize time manager, which must happen after kernel is created
         time_manager.Initialize();
@@ -207,14 +213,14 @@ struct System::Impl {
     }
 
     ResultStatus Load(System& system, Frontend::EmuWindow& emu_window,
-                      const std::string& filepath) {
+                      Core::OnlineInitiator& online_initiator_, const std::string& filepath) {
         app_loader = Loader::GetLoader(GetGameFileFromPath(virtual_filesystem, filepath));
         if (!app_loader) {
             LOG_CRITICAL(Core, "Failed to obtain loader for {}!", filepath);
             return ResultStatus::ErrorGetLoader;
         }
 
-        ResultStatus init_result{Init(system, emu_window)};
+        ResultStatus init_result{Init(system, emu_window, online_initiator_)};
         if (init_result != ResultStatus::Success) {
             LOG_CRITICAL(Core, "Failed to initialize system (Error {})!",
                          static_cast<int>(init_result));
@@ -259,6 +265,7 @@ struct System::Impl {
             LOG_ERROR(Core, "Failed to find title id for ROM (Error {})",
                       static_cast<u32>(load_result));
         }
+
         perf_stats = std::make_unique<PerfStats>(title_id);
         // Reset counters and set time origin to current frame
         GetAndResetPerfStats();
@@ -284,6 +291,10 @@ struct System::Impl {
         }
 
         lm_manager.Flush();
+
+        online_initiator->EndOnlineSession();
+
+        Service::Sockets::OnGameExit(*service_manager);
 
         is_powered_on = false;
         exit_lock = false;
@@ -399,6 +410,9 @@ struct System::Impl {
     /// Telemetry session for this emulation session
     std::unique_ptr<Core::TelemetrySession> telemetry_session;
 
+    /// Pointer to the online initiator
+    Core::OnlineInitiator* online_initiator = nullptr;
+
     /// Network instance
     Network::NetworkInstance network_instance;
 
@@ -442,8 +456,10 @@ void System::InvalidateCpuInstructionCaches() {
     impl->kernel.InvalidateAllInstructionCaches();
 }
 
-System::ResultStatus System::Load(Frontend::EmuWindow& emu_window, const std::string& filepath) {
-    return impl->Load(*this, emu_window, filepath);
+System::ResultStatus System::Load(Frontend::EmuWindow& emu_window,
+                                  Core::OnlineInitiator& online_initiator,
+                                  const std::string& filepath) {
+    return impl->Load(*this, emu_window, online_initiator, filepath);
 }
 
 bool System::IsPoweredOn() const {
@@ -602,6 +618,14 @@ const Timing::CoreTiming& System::CoreTiming() const {
     return impl->core_timing;
 }
 
+Core::OnlineInitiator& System::OnlineInitiator() {
+    return *impl->online_initiator;
+}
+
+const Core::OnlineInitiator& System::OnlineInitiator() const {
+    return *impl->online_initiator;
+}
+
 Core::PerfStats& System::GetPerfStats() {
     return *impl->perf_stats;
 }
@@ -746,8 +770,9 @@ const System::CurrentBuildProcessID& System::GetCurrentProcessBuildID() const {
     return impl->build_id;
 }
 
-System::ResultStatus System::Init(Frontend::EmuWindow& emu_window) {
-    return impl->Init(*this, emu_window);
+System::ResultStatus System::Init(Frontend::EmuWindow& emu_window,
+                                  Core::OnlineInitiator& online_initiator) {
+    return impl->Init(*this, emu_window, online_initiator);
 }
 
 void System::Shutdown() {

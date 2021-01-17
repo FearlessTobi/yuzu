@@ -38,9 +38,8 @@ class BlockingWorker {
 
 public:
     /// Create a new worker
-    static std::unique_ptr<This> Create(Core::System& system, Service* service,
-                                        std::string_view name) {
-        return std::unique_ptr<This>(new This(system, service, name));
+    static std::unique_ptr<This> Create(Core::System& system, Service* service, std::string name) {
+        return std::unique_ptr<This>(new This(system, service, std::move(name)));
     }
 
     ~BlockingWorker() {
@@ -92,17 +91,16 @@ public:
     }
 
 private:
-    explicit BlockingWorker(Core::System& system, Service* service, std::string_view name) {
-        auto pair = Kernel::WritableEvent::CreateEventPair(system.Kernel(), std::string(name));
+    explicit BlockingWorker(Core::System& system, Service* service, std::string name) {
+        auto pair = Kernel::WritableEvent::CreateEventPair(system.Kernel(), name);
         kernel_event = std::move(pair.writable);
         thread = std::thread([this, &system, service, name] { Run(system, service, name); });
     }
 
-    void Run(Core::System& system, Service* service, std::string_view name) {
+    void Run(Core::System& system, Service* service, std::string name) {
         system.RegisterHostThread();
 
         const std::string thread_name = fmt::format("yuzu:{}", name);
-        MicroProfileOnThreadCreate(thread_name.c_str());
         Common::SetCurrentThreadName(thread_name.c_str());
 
         bool keep_running = true;
@@ -134,8 +132,8 @@ class BlockingWorkerPool {
     using Worker = BlockingWorker<Service, Types...>;
 
 public:
-    explicit BlockingWorkerPool(Core::System& system_, Service* service_)
-        : system{system_}, service{service_} {}
+    explicit BlockingWorkerPool(Core::System& system_, Service* service_, std::string prefix_)
+        : system{system_}, service{service_}, prefix{std::move(prefix_)} {}
 
     /// Returns a captured worker thread, creating new ones if necessary
     Worker* CaptureWorker() {
@@ -144,16 +142,17 @@ public:
                 return worker.get();
             }
         }
-        auto new_worker = Worker::Create(system, service, fmt::format("BSD:{}", workers.size()));
-        [[maybe_unused]] const bool success = new_worker->TryCapture();
+        auto worker = Worker::Create(system, service, fmt::format("{}:{}", prefix, workers.size()));
+        [[maybe_unused]] const bool success = worker->TryCapture();
         ASSERT(success);
 
-        return workers.emplace_back(std::move(new_worker)).get();
+        return workers.emplace_back(std::move(worker)).get();
     }
 
 private:
     Core::System& system;
     Service* const service;
+    std::string prefix;
 
     std::vector<std::unique_ptr<Worker>> workers;
 };

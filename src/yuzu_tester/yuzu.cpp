@@ -27,6 +27,7 @@
 #include "core/file_sys/vfs_real.h"
 #include "core/hle/service/filesystem/filesystem.h"
 #include "core/loader/loader.h"
+#include "core/online_initiator.h"
 #include "core/settings.h"
 #include "core/telemetry_session.h"
 #include "video_core/renderer_base.h"
@@ -165,6 +166,8 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<EmuWindow_SDL2_Hide> emu_window{std::make_unique<EmuWindow_SDL2_Hide>()};
 
+    Core::OnlineInitiator online_initiator;
+
     bool finished = false;
     int return_value = 0;
     const auto callback = [&finished,
@@ -219,7 +222,8 @@ int main(int argc, char** argv) {
 
     SCOPE_EXIT({ system.Shutdown(); });
 
-    const Core::System::ResultStatus load_result{system.Load(*emu_window, filepath)};
+    const Core::System::ResultStatus load_result{
+        system.Load(*emu_window, online_initiator, filepath)};
 
     switch (load_result) {
     case Core::System::ResultStatus::ErrorGetLoader:

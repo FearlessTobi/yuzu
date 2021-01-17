@@ -89,6 +89,6 @@ public:
 #endif
 };
 
-std::pair<s32, Errno> Poll(std::vector<PollFD>& poll_fds, s32 timeout);
+std::pair<s32, Errno> Poll(size_t nfds, PollFD* pollfds, s32 timeout);
 
 } // namespace Network

@@ -26,18 +26,23 @@ namespace Service::Sockets {
 
 class BSD final : public ServiceFramework<BSD> {
 public:
-    explicit BSD(Core::System& system, const char* name);
-    ~BSD() override;
-
-private:
-    /// Maximum number of file descriptors
-    static constexpr size_t MAX_FD = 128;
-
     struct FileDescriptor {
         std::unique_ptr<Network::Socket> socket;
         s32 flags = 0;
         bool is_connection_based = false;
     };
+
+    explicit BSD(Core::System& system, const char* name);
+    ~BSD() override;
+
+    const FileDescriptor* GetFileDescriptor(s32 fd) const noexcept;
+    FileDescriptor* GetFileDescriptor(s32 fd) noexcept;
+
+    void OnGameExit();
+
+private:
+    /// Maximum number of file descriptors
+    static constexpr size_t MAX_FD = 128;
 
     struct PollWork {
         void Execute(BSD* bsd);
@@ -126,6 +131,7 @@ private:
     void Connect(Kernel::HLERequestContext& ctx);
     void GetPeerName(Kernel::HLERequestContext& ctx);
     void GetSockName(Kernel::HLERequestContext& ctx);
+    void GetSockOpt(Kernel::HLERequestContext& ctx);
     void Listen(Kernel::HLERequestContext& ctx);
     void Fcntl(Kernel::HLERequestContext& ctx);
     void SetSockOpt(Kernel::HLERequestContext& ctx);

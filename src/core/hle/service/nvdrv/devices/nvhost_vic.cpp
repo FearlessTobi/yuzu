@@ -11,8 +11,9 @@
 
 namespace Service::Nvidia::Devices {
 nvhost_vic::nvhost_vic(Core::System& system, std::shared_ptr<nvmap> nvmap_dev)
-    : nvhost_nvdec_common(system, std::move(nvmap_dev)) {}
-
+    : nvhost_nvdec_common(system, std::move(nvmap_dev)) {
+    vic_device = true;
+}
 nvhost_vic::~nvhost_vic() = default;
 
 u32 nvhost_vic::ioctl(Ioctl command, const std::vector<u8>& input, const std::vector<u8>& input2,

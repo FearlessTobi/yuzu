@@ -29,6 +29,9 @@
 #include "core/hle/service/am/applets/applets.h"
 #include "core/hle/service/hid/controllers/npad.h"
 #include "core/hle/service/hid/hid.h"
+#include "core/online_initiator.h"
+#include "yuzu/online/friends.h"
+#include "yuzu/online/monitor.h"
 
 // These are wrappers to avoid the calls to CreateDirectory and CreateFile because of the Windows
 // defines.
@@ -50,6 +53,7 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 #include <QDesktopServices>
 #include <QDesktopWidget>
 #include <QDialogButtonBox>
+#include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -115,6 +119,8 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 #include "yuzu/install_dialog.h"
 #include "yuzu/loading_screen.h"
 #include "yuzu/main.h"
+#include "yuzu/online/notification_queue.h"
+#include "yuzu/overlay.h"
 #include "yuzu/uisettings.h"
 
 #ifdef USE_DISCORD_PRESENCE
@@ -277,6 +283,8 @@ GMainWindow::GMainWindow()
     if (args.length() >= 2) {
         BootGame(args[1]);
     }
+
+    MigrateConfigFiles();
 }
 
 GMainWindow::~GMainWindow() {
@@ -288,6 +296,7 @@ GMainWindow::~GMainWindow() {
 void GMainWindow::ControllerSelectorReconfigureControllers(
     const Core::Frontend::ControllerParameters& parameters) {
     QtControllerSelectorDialog dialog(this, parameters, input_subsystem.get());
+
     dialog.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint |
                           Qt::WindowTitleHint | Qt::WindowSystemMenuHint);
     dialog.setWindowModality(Qt::WindowModal);
@@ -471,16 +480,9 @@ void GMainWindow::WebBrowserOpenPage(std::string_view filename, std::string_view
 #else
 
 void GMainWindow::WebBrowserOpenPage(std::string_view filename, std::string_view additional_args) {
-    QMessageBox::warning(
-        this, tr("Web Applet"),
-        tr("This version of yuzu was built without QtWebEngine support, meaning that yuzu cannot "
-           "properly display the game manual or web page requested."),
-        QMessageBox::Ok, QMessageBox::Ok);
-
-    LOG_INFO(Frontend,
-             "(STUBBED) called - Missing QtWebEngine dependency needed to open website page at "
-             "'{}' with arguments '{}'!",
-             filename, additional_args);
+    LOG_WARNING(Frontend,
+                "(STUBBED) called - Trying to open website page at '{}' with arguments '{}'!",
+                filename, additional_args);
 
     emit WebBrowserFinishedBrowsing();
 }
@@ -542,18 +544,29 @@ void GMainWindow::InitializeWidgets() {
         statusBar()->addPermanentWidget(label);
     }
 
+    online_status_monitor = new OnlineStatusMonitor(online_initiator);
+    statusBar()->addPermanentWidget(online_status_monitor);
+
+    friend_list = new FriendsList(online_initiator, this);
+    notification_queue = new NotificationQueue(online_initiator, friend_list, this);
+    connect(online_status_monitor, &OnlineStatusMonitor::ChangeAirplaneMode, notification_queue,
+            &NotificationQueue::ChangedAirplaneMode);
+    connect(online_status_monitor, &OnlineStatusMonitor::ChangeAirplaneMode, friend_list,
+            &FriendsList::ChangedAirplaneMode);
+
     // Setup Dock button
     dock_status_button = new QPushButton();
     dock_status_button->setObjectName(QStringLiteral("TogglableStatusBarButton"));
     dock_status_button->setFocusPolicy(Qt::NoFocus);
     connect(dock_status_button, &QPushButton::clicked, [&] {
-        Settings::values.use_docked_mode = !Settings::values.use_docked_mode;
-        dock_status_button->setChecked(Settings::values.use_docked_mode);
-        OnDockedModeChanged(!Settings::values.use_docked_mode, Settings::values.use_docked_mode);
+        Settings::values.use_docked_mode.SetValue(!Settings::values.use_docked_mode.GetValue());
+        dock_status_button->setChecked(Settings::values.use_docked_mode.GetValue());
+        OnDockedModeChanged(!Settings::values.use_docked_mode.GetValue(),
+                            Settings::values.use_docked_mode.GetValue());
     });
     dock_status_button->setText(tr("DOCK"));
     dock_status_button->setCheckable(true);
-    dock_status_button->setChecked(Settings::values.use_docked_mode);
+    dock_status_button->setChecked(Settings::values.use_docked_mode.GetValue());
     statusBar()->insertPermanentWidget(0, dock_status_button);
 
     // Setup ASync button
@@ -792,10 +805,11 @@ void GMainWindow::InitializeHotkeys() {
             });
     connect(hotkey_registry.GetHotkey(main_window, QStringLiteral("Change Docked Mode"), this),
             &QShortcut::activated, this, [&] {
-                Settings::values.use_docked_mode = !Settings::values.use_docked_mode;
-                OnDockedModeChanged(!Settings::values.use_docked_mode,
-                                    Settings::values.use_docked_mode);
-                dock_status_button->setChecked(Settings::values.use_docked_mode);
+                Settings::values.use_docked_mode.SetValue(
+                    !Settings::values.use_docked_mode.GetValue());
+                OnDockedModeChanged(!Settings::values.use_docked_mode.GetValue(),
+                                    Settings::values.use_docked_mode.GetValue());
+                dock_status_button->setChecked(Settings::values.use_docked_mode.GetValue());
             });
     connect(hotkey_registry.GetHotkey(main_window, QStringLiteral("Mute Audio"), this),
             &QShortcut::activated, this,
@@ -924,6 +938,9 @@ void GMainWindow::ConnectMenuEvents() {
     connect(ui.action_Show_Status_Bar, &QAction::triggered, statusBar(), &QStatusBar::setVisible);
     connect(ui.action_Reset_Window_Size, &QAction::triggered, this, &GMainWindow::ResetWindowSize);
 
+    // Multiplayer
+    connect(ui.action_Open_Friend_List, &QAction::triggered, this, &GMainWindow::OnOpenFriendList);
+
     // Fullscreen
     connect(ui.action_Fullscreen, &QAction::triggered, this, &GMainWindow::ToggleFullscreen);
 
@@ -995,8 +1012,8 @@ bool GMainWindow::LoadROM(const QString& filename) {
 
     system.RegisterHostThread();
 
-    const Core::System::ResultStatus result{system.Load(*render_window, filename.toStdString())};
-
+    const Core::System::ResultStatus result{
+        system.Load(*render_window, online_initiator, filename.toStdString())};
     const auto drd_callout =
         (UISettings::values.callout_flags & static_cast<u32>(CalloutFlag::DRDDeprecation)) == 0;
 
@@ -1087,7 +1104,7 @@ void GMainWindow::BootGame(const QString& filename) {
     const auto loader = Loader::GetLoader(v_file);
     if (!(loader == nullptr || loader->ReadProgramId(title_id) != Loader::ResultStatus::Success)) {
         // Load per game settings
-        Config per_game_config(fmt::format("{:016X}.ini", title_id), false);
+        Config per_game_config(fmt::format("{:016X}", title_id), Config::ConfigType::PerGameConfig);
     }
 
     Settings::LogSettings();
@@ -1117,6 +1134,8 @@ void GMainWindow::BootGame(const QString& filename) {
 
     // Update the GUI
     UpdateStatusButtons();
+    online_status_monitor->Refresh();
+    friend_list->Refresh();
     if (ui.action_Single_Window_Mode->isChecked()) {
         game_list->hide();
         game_list_placeholder->hide();
@@ -1218,6 +1237,9 @@ void GMainWindow::ShutdownGame() {
 #ifdef HAS_VULKAN
     renderer_status_button->setEnabled(true);
 #endif
+
+    online_status_monitor->Refresh();
+    friend_list->Refresh();
 
     emulation_running = false;
 
@@ -2234,7 +2256,8 @@ void GMainWindow::OnConfigure() {
     const auto old_theme = UISettings::values.theme;
     const bool old_discord_presence = UISettings::values.enable_discord_presence;
 
-    ConfigureDialog configure_dialog(this, hotkey_registry, input_subsystem.get());
+    ConfigureDialog configure_dialog(this, hotkey_registry, input_subsystem.get(), online_initiator,
+                                     online_status_monitor, friend_list);
     connect(&configure_dialog, &ConfigureDialog::LanguageChanged, this,
             &GMainWindow::OnLanguageChanged);
 
@@ -2366,6 +2389,20 @@ void GMainWindow::OnToggleFilterBar() {
     }
 }
 
+void GMainWindow::OnTriggerAirplaneMode() {
+    Settings::values.is_airplane_mode = ui.action_Airplane_Mode->isChecked();
+    online_status_monitor->ChangeAirplaneMode();
+}
+
+void GMainWindow::OnChangeAirplaneMode() {
+    ui.action_Airplane_Mode->setChecked(Settings::values.is_airplane_mode);
+}
+
+void GMainWindow::OnOpenFriendList() {
+    friend_list->show();
+    friend_list->setFocus();
+}
+
 void GMainWindow::OnCaptureScreenshot() {
     OnPauseGame();
 
@@ -2391,6 +2428,29 @@ void GMainWindow::OnCaptureScreenshot() {
 #endif
     render_window->CaptureScreenshot(UISettings::values.screenshot_resolution_factor, filename);
     OnStartGame();
+}
+
+// TODO: Written 2020-10-01: Remove per-game config migration code when it is irrelevant
+void GMainWindow::MigrateConfigFiles() {
+    const std::string& config_dir_str = Common::FS::GetUserPath(Common::FS::UserPath::ConfigDir);
+    const QDir config_dir = QDir(QString::fromStdString(config_dir_str));
+    const QStringList config_dir_list = config_dir.entryList(QStringList(QStringLiteral("*.ini")));
+
+    Common::FS::CreateFullPath(fmt::format("{}custom" DIR_SEP, config_dir_str));
+    for (QStringList::const_iterator it = config_dir_list.constBegin();
+         it != config_dir_list.constEnd(); ++it) {
+        const auto filename = it->toStdString();
+        if (filename.find_first_not_of("0123456789abcdefACBDEF", 0) < 16) {
+            continue;
+        }
+        const auto origin = fmt::format("{}{}", config_dir_str, filename);
+        const auto destination = fmt::format("{}custom" DIR_SEP "{}", config_dir_str, filename);
+        LOG_INFO(Frontend, "Migrating config file from {} to {}", origin, destination);
+        if (!Common::FS::Rename(origin, destination)) {
+            // Delete the old config file if one already exists in the new location.
+            Common::FS::Delete(origin);
+        }
+    }
 }
 
 void GMainWindow::UpdateWindowTitle(const std::string& title_name,
@@ -2450,7 +2510,7 @@ void GMainWindow::UpdateStatusBar() {
 }
 
 void GMainWindow::UpdateStatusButtons() {
-    dock_status_button->setChecked(Settings::values.use_docked_mode);
+    dock_status_button->setChecked(Settings::values.use_docked_mode.GetValue());
     multicore_status_button->setChecked(Settings::values.use_multi_core.GetValue());
     Settings::values.use_asynchronous_gpu_emulation.SetValue(
         Settings::values.use_asynchronous_gpu_emulation.GetValue() ||
@@ -2725,6 +2785,12 @@ void GMainWindow::closeEvent(QCloseEvent* event) {
     render_window->close();
 
     QWidget::closeEvent(event);
+}
+
+void GMainWindow::resizeEvent(QResizeEvent*) {
+    for (Overlay* const overlay : findChildren<Overlay*>()) {
+        overlay->Reposition(this, menuBar());
+    }
 }
 
 static bool IsSingleFileDropEvent(const QMimeData* mime) {

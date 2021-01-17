@@ -120,9 +120,16 @@
     <addaction name="separator"/>
     <addaction name="action_About"/>
    </widget>
+   <widget class="QMenu" name="menuMultiplayer">
+    <property name="title">
+     <string>Multiplayer</string>
+    </property>
+    <addaction name="action_Open_Friend_List"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Emulation"/>
    <addaction name="menu_View"/>
+   <addaction name="menuMultiplayer"/>
    <addaction name="menu_Tools"/>
    <addaction name="menu_Help"/>
   </widget>
@@ -294,6 +301,24 @@
    </property>
    <property name="text">
     <string>Configure Current Game...</string>
+   </property>
+  </action>
+  <action name="action_Airplane_Mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Airplane Mode</string>
+   </property>
+  </action>
+  <action name="action_Open_Friend_List">
+   <property name="text">
+    <string>Open Friend List</string>
+   </property>
+  </action>
+  <action name="action_Multiplayer_Configure">
+   <property name="text">
+    <string>Configure</string>
    </property>
   </action>
  </widget>

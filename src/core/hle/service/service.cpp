@@ -241,7 +241,7 @@ void Init(std::shared_ptr<SM::ServiceManager>& sm, Core::System& system) {
     Set::InstallInterfaces(*sm);
     Sockets::InstallInterfaces(*sm, system);
     SPL::InstallInterfaces(*sm);
-    SSL::InstallInterfaces(*sm);
+    SSL::InstallInterfaces(*sm, system);
     Time::InstallInterfaces(system);
     USB::InstallInterfaces(*sm);
     VI::InstallInterfaces(*sm, nv_flinger);

@@ -99,6 +99,7 @@ class CpuManager;
 class DeviceMemory;
 class ExclusiveMonitor;
 class FrameLimiter;
+class OnlineInitiator;
 class PerfStats;
 class Reporter;
 class TelemetrySession;
@@ -175,7 +176,7 @@ public:
      * @param filepath String path to the executable application to load on the host file system.
      * @returns ResultStatus code, indicating if the operation succeeded.
      */
-    ResultStatus Load(Frontend::EmuWindow& emu_window, const std::string& filepath);
+    ResultStatus Load(Frontend::EmuWindow& emu_window, Core::OnlineInitiator& online_initiator,const std::string& filepath);
 
     /**
      * Indicates if the emulated system is powered on (all subsystems initialized and able to run an
@@ -296,6 +297,12 @@ public:
     /// Provides a constant reference to the kernel instance.
     const Kernel::KernelCore& Kernel() const;
 
+    /// Provides a constant reference to the online initiator instance.
+    Core::OnlineInitiator& OnlineInitiator();
+
+    /// Provides a constant reference to the online initiator instance.
+    const Core::OnlineInitiator& OnlineInitiator() const;
+
     /// Provides a reference to the internal PerfStats instance.
     Core::PerfStats& GetPerfStats();
 
@@ -397,11 +404,12 @@ private:
 
     /**
      * Initialize the emulated system.
-     * @param emu_window Reference to the host-system window used for video output and keyboard
-     *                   input.
+     * @param emu_window       Reference to the host-system window used for video output and
+     *                         keyboard input.
+     * @param online_initiator Reference to host online initiator
      * @return ResultStatus code, indicating if the operation succeeded.
      */
-    ResultStatus Init(Frontend::EmuWindow& emu_window);
+    ResultStatus Init(Frontend::EmuWindow& emu_window, Core::OnlineInitiator& online_initiator);
 
     struct Impl;
     std::unique_ptr<Impl> impl;

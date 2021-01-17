@@ -713,8 +713,8 @@ FSP_SRV::FSP_SRV(FileSystemController& fsc, const Core::Reporter& reporter)
         {201, nullptr, "OpenDataStorageByProgramId"},
         {202, &FSP_SRV::OpenDataStorageByDataId, "OpenDataStorageByDataId"},
         {203, &FSP_SRV::OpenPatchDataStorageByCurrentProcess, "OpenPatchDataStorageByCurrentProcess"},
-        {204, nullptr, "OpenDataFileSystemByProgramIndex"},
-        {205, nullptr, "OpenDataStorageByProgramIndex"},
+        {204, nullptr, "OpenDataFileSystemWithProgramIndex"},
+        {205, &FSP_SRV::OpenDataStorageWithProgramIndex, "OpenDataStorageWithProgramIndex"},
         {400, nullptr, "OpenDeviceOperator"},
         {500, nullptr, "OpenSdCardDetectionEventNotifier"},
         {501, nullptr, "OpenGameCardDetectionEventNotifier"},
@@ -761,7 +761,7 @@ FSP_SRV::FSP_SRV(FileSystemController& fsc, const Core::Reporter& reporter)
         {1008, nullptr, "OpenRegisteredUpdatePartition"},
         {1009, nullptr, "GetAndClearMemoryReportInfo"},
         {1010, nullptr, "SetDataStorageRedirectTarget"},
-        {1011, &FSP_SRV::GetAccessLogVersionInfo, "GetAccessLogVersionInfo"},
+        {1011, &FSP_SRV::GetProgramIndexForAccessLog, "GetProgramIndexForAccessLog"},
         {1012, nullptr, "GetFsStackUsage"},
         {1013, nullptr, "UnsetSaveDataRootPath"},
         {1014, nullptr, "OutputMultiProgramTagAccessLog"},
@@ -991,6 +991,30 @@ void FSP_SRV::OpenPatchDataStorageByCurrentProcess(Kernel::HLERequestContext& ct
     rb.Push(FileSys::ERROR_ENTITY_NOT_FOUND);
 }
 
+void FSP_SRV::OpenDataStorageWithProgramIndex(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp{ctx};
+    const auto program_index = rp.PopRaw<u8>();
+
+    LOG_DEBUG(Service_FS, "called with program_index={:02X}", program_index);
+
+    // TODO: use storage_index
+    // Ignore storage index and proceed with current process
+    auto romfs = fsc.OpenRomFSCurrentProcess();
+    if (romfs.Failed()) {
+        // TODO (bunnei): Find the right error code to use here
+        LOG_ERROR(Service_FS, "no file system interface available!");
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(RESULT_UNKNOWN);
+        return;
+    }
+
+    auto storage = std::make_shared<IStorage>(std::move(romfs.Unwrap()));
+
+    IPC::ResponseBuilder rb{ctx, 2, 0, 1};
+    rb.Push(RESULT_SUCCESS);
+    rb.PushIpcInterface(std::move(storage));
+}
+
 void FSP_SRV::SetGlobalAccessLogMode(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp{ctx};
     log_mode = rp.PopEnum<LogMode>();
@@ -1022,7 +1046,7 @@ void FSP_SRV::OutputAccessLogToSdCard(Kernel::HLERequestContext& ctx) {
     rb.Push(RESULT_SUCCESS);
 }
 
-void FSP_SRV::GetAccessLogVersionInfo(Kernel::HLERequestContext& ctx) {
+void FSP_SRV::GetProgramIndexForAccessLog(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_FS, "called");
 
     IPC::ResponseBuilder rb{ctx, 4};

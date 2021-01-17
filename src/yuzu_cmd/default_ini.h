@@ -65,6 +65,14 @@ button_screenshot=
 lstick=
 rstick=
 
+# Whether to enable or disable vibration
+# 0: Disabled, 1 (default): Enabled
+vibration_enabled=
+
+# Whether to enable or disable accurate vibrations
+# 0 (default): Disabled, 1: Enabled
+enable_accurate_vibrations=
+
 # for motion input, the following devices are available:
 #  - "motion_emu" (default) for emulating motion input from mouse input. Required parameters:
 #      - "update_period": update period in milliseconds (default to 100)
@@ -338,6 +346,11 @@ yuzu_token =
 # The name of the backend to use for BCAT
 # If this is set to 'boxcat' boxcat will be used, otherwise a null implementation will be used
 bcat_backend =
+
+[Network]
+# Airplane mode
+# No network related connections will be done
+is_airplane_mode = true
 
 [AddOns]
 # Used to disable add-ons

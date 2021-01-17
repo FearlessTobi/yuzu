@@ -23,10 +23,12 @@ enum class Errno : u32 {
 };
 
 enum class Domain : u32 {
+    UNSPECIFIED = 0,
     INET = 2,
 };
 
 enum class Type : u32 {
+    UNSPECIFIED = 0,
     STREAM = 1,
     DGRAM = 2,
     RAW = 3,
@@ -80,12 +82,15 @@ struct Linger {
     u32 linger;
 };
 
-constexpr u16 POLL_IN = 0x01;
-constexpr u16 POLL_PRI = 0x02;
-constexpr u16 POLL_OUT = 0x04;
-constexpr u16 POLL_ERR = 0x08;
-constexpr u16 POLL_HUP = 0x10;
-constexpr u16 POLL_NVAL = 0x20;
+constexpr u16 POLL_IN = 0x001;
+constexpr u16 POLL_PRI = 0x002;
+constexpr u16 POLL_OUT = 0x004;
+constexpr u16 POLL_ERR = 0x008;
+constexpr u16 POLL_HUP = 0x010;
+constexpr u16 POLL_NVAL = 0x020;
+constexpr u16 POLL_RDNORM = 0x040;
+constexpr u16 POLL_RDBAND = 0x080;
+constexpr u16 POLL_WRBAND = 0x100;
 
 constexpr u32 FLAG_MSG_DONTWAIT = 0x80;
 
@@ -93,5 +98,8 @@ constexpr u32 FLAG_O_NONBLOCK = 0x800;
 
 /// Registers all Sockets services with the specified service manager.
 void InstallInterfaces(SM::ServiceManager& service_manager, Core::System& system);
+
+/// Call on game exit to terminate open sockets.
+void OnGameExit(SM::ServiceManager& service_manager);
 
 } // namespace Service::Sockets

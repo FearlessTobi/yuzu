@@ -10,6 +10,7 @@
 #include "core/hle/service/nifm/nifm.h"
 #include "core/hle/service/service.h"
 #include "core/network/network.h"
+#include "core/online_initiator.h"
 #include "core/settings.h"
 
 namespace Service::NIFM {
@@ -40,7 +41,7 @@ public:
 
 class IRequest final : public ServiceFramework<IRequest> {
 public:
-    explicit IRequest(Core::System& system) : ServiceFramework("IRequest") {
+    explicit IRequest(Core::System& system_) : ServiceFramework("IRequest"), system(system_) {
         static const FunctionInfo functions[] = {
             {0, &IRequest::GetRequestState, "GetRequestState"},
             {1, &IRequest::GetResult, "GetResult"},
@@ -89,11 +90,8 @@ private:
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(RESULT_SUCCESS);
 
-        if (Settings::values.bcat_backend == "none") {
-            rb.PushEnum(RequestState::NotSubmitted);
-        } else {
-            rb.PushEnum(RequestState::Connected);
-        }
+        const bool is_connected = system.OnlineInitiator().IsConnected();
+        rb.PushEnum(is_connected ? RequestState::Connected : RequestState::NotSubmitted);
     }
 
     void GetResult(Kernel::HLERequestContext& ctx) {
@@ -135,6 +133,7 @@ private:
         rb.Push<u32>(0);
     }
 
+    Core::System& system;
     Kernel::EventPair event1, event2;
 };
 
@@ -179,6 +178,50 @@ private:
         rb.Push(RESULT_SUCCESS);
         rb.PushIpcInterface<IRequest>(system);
     }
+    void GetCurrentNetworkProfile(Kernel::HLERequestContext& ctx) {
+        LOG_WARNING(Service_NIFM, "(STUBBED) called");
+
+        std::array<u8, 0x17c> data;
+
+        data[0] = 1;    // automatic ip
+        data[0xd] = 1;  // atomic dns
+        data[0x16] = 0; // disable proxy
+
+        for (size_t i = 0; i < 0x10; ++i) {
+            data[0xc2 + i] = 0xcc; // uuid
+        }
+
+        data[0xd2 + 0] = 'y';
+        data[0xd2 + 1] = 'u';
+        data[0xd2 + 2] = 'z';
+        data[0xd2 + 3] = 'u';
+        data[0xd2 + 4] = 'N';
+        data[0xd2 + 5] = 'e';
+        data[0xd2 + 6] = 't';
+        data[0xd2 + 7] = 'w';
+        data[0xd2 + 8] = 'o';
+        data[0xd2 + 9] = 'r';
+        data[0xd2 + 10] = 'k';
+
+        data[0x116 + 0] = 4;
+        data[0x116 + 1] = 'y';
+        data[0x116 + 2] = 'u';
+        data[0x116 + 3] = 'z';
+        data[0x116 + 4] = 'u';
+        data[0x116 + 0x24 + 0] = 'p';
+        data[0x116 + 0x24 + 1] = 'a';
+        data[0x116 + 0x24 + 2] = 's';
+        data[0x116 + 0x24 + 3] = 's';
+        data[0x116 + 0x24 + 4] = 'w';
+        data[0x116 + 0x24 + 5] = 'o';
+        data[0x116 + 0x24 + 6] = 'r';
+        data[0x116 + 0x24 + 7] = 'd';
+
+        ctx.WriteBuffer(data);
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(RESULT_SUCCESS);
+    }
     void RemoveNetworkProfile(Kernel::HLERequestContext& ctx) {
         LOG_WARNING(Service_NIFM, "(STUBBED) called");
 
@@ -222,23 +265,16 @@ private:
 
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(RESULT_SUCCESS);
-        if (Settings::values.bcat_backend == "none") {
-            rb.Push<u8>(0);
-        } else {
-            rb.Push<u8>(1);
-        }
+        rb.Push<u8>(system.OnlineInitiator().IsConnected() ? 1 : 0);
     }
     void IsAnyInternetRequestAccepted(Kernel::HLERequestContext& ctx) {
         LOG_WARNING(Service_NIFM, "(STUBBED) called");
 
         IPC::ResponseBuilder rb{ctx, 3};
         rb.Push(RESULT_SUCCESS);
-        if (Settings::values.bcat_backend == "none") {
-            rb.Push<u8>(0);
-        } else {
-            rb.Push<u8>(1);
-        }
+        rb.Push<u8>(system.OnlineInitiator().IsConnected() ? 1 : 0);
     }
+
     Core::System& system;
 };
 
@@ -249,7 +285,7 @@ IGeneralService::IGeneralService(Core::System& system)
         {1, &IGeneralService::GetClientId, "GetClientId"},
         {2, &IGeneralService::CreateScanRequest, "CreateScanRequest"},
         {4, &IGeneralService::CreateRequest, "CreateRequest"},
-        {5, nullptr, "GetCurrentNetworkProfile"},
+        {5, &IGeneralService::GetCurrentNetworkProfile, "GetCurrentNetworkProfile"},
         {6, nullptr, "EnumerateNetworkInterfaces"},
         {7, nullptr, "EnumerateNetworkProfiles"},
         {8, nullptr, "GetNetworkProfile"},

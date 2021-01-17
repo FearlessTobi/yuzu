@@ -2,11 +2,36 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <string>
+
+#include <fmt/format.h>
+
+#include "common/logging/log.h"
+#include "common/string_util.h"
+#include "core/hle/ipc_helpers.h"
+#include "core/hle/kernel/thread.h"
 #include "core/hle/service/sockets/nsd.h"
+#include "core/online_initiator.h"
 
 namespace Service::Sockets {
 
-NSD::NSD(const char* name) : ServiceFramework(name) {
+void NSD::ResolveEx(Kernel::HLERequestContext& ctx) {
+    const std::string dns = Common::StringFromBuffer(ctx.ReadBuffer());
+
+    LOG_DEBUG(Service, "called. dns='{}'", dns);
+
+    const Core::OnlineInitiator& online_initiator = system.OnlineInitiator();
+    const std::string response = online_initiator.ResolveUrl(dns, true);
+
+    // Include the zero terminator
+    ctx.WriteBuffer(response.c_str(), response.size() + 1);
+
+    IPC::ResponseBuilder rb{ctx, 3};
+    rb.Push(RESULT_SUCCESS);
+    rb.Push<u32>(0);
+}
+
+NSD::NSD(const Core::System& system_, const char* name) : ServiceFramework(name), system{system_} {
     // clang-format off
     static const FunctionInfo functions[] = {
         {10, nullptr, "GetSettingName"},
@@ -16,7 +41,7 @@ NSD::NSD(const char* name) : ServiceFramework(name) {
         {14, nullptr, "ImportSettings"},
         {15, nullptr, "SetChangeEnvironmentIdentifierDisabled"},
         {20, nullptr, "Resolve"},
-        {21, nullptr, "ResolveEx"},
+        {21, &NSD::ResolveEx, "ResolveEx"},
         {30, nullptr, "GetNasServiceSetting"},
         {31, nullptr, "GetNasServiceSettingEx"},
         {40, nullptr, "GetNasRequestFqdn"},

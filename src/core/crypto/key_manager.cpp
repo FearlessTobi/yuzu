@@ -17,6 +17,7 @@
 #include <mbedtls/cipher.h>
 #include <mbedtls/cmac.h>
 #include <mbedtls/sha256.h>
+#include <openssl/cmac.h>
 #include "common/common_funcs.h"
 #include "common/common_paths.h"
 #include "common/file_util.h"
@@ -887,8 +888,13 @@ void KeyManager::DeriveSDSeedLazy() {
 static Key128 CalculateCMAC(const u8* source, size_t size, const Key128& key) {
     Key128 out{};
 
-    mbedtls_cipher_cmac(mbedtls_cipher_info_from_type(MBEDTLS_CIPHER_AES_128_ECB), key.data(),
-                        key.size() * 8, source, size, out.data());
+    CMAC_CTX* ctx = CMAC_CTX_new();
+    CMAC_Init(ctx, key.data(), key.size() * CHAR_BIT, EVP_aes_128_ecb(), nullptr);
+    CMAC_Update(ctx, source, size);
+
+    size_t len;
+    CMAC_Final(ctx, out.data(), &len);
+
     return out;
 }
 

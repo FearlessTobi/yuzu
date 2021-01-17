@@ -5,12 +5,14 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #ifdef _WIN32
 #define _WINSOCK_DEPRECATED_NO_WARNINGS // gethostname
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #elif __unix__
 #include <errno.h>
 #include <fcntl.h>
@@ -53,17 +55,14 @@ constexpr IPv4Address TranslateIPv4(in_addr addr) {
 
 sockaddr TranslateFromSockAddrIn(SockAddrIn input) {
     sockaddr_in result;
-
-#ifdef __unix__
-    result.sin_len = sizeof(result);
-#endif
+    std::memset(&result, 0, sizeof(result));
 
     switch (static_cast<Domain>(input.family)) {
     case Domain::INET:
         result.sin_family = AF_INET;
         break;
     default:
-        UNIMPLEMENTED_MSG("Unhandled sockaddr family={}", static_cast<int>(input.family));
+        UNIMPLEMENTED_MSG("Unhandled sockaddr_data family={}", static_cast<int>(input.family));
         result.sin_family = AF_INET;
         break;
     }
@@ -127,13 +126,14 @@ constexpr IPv4Address TranslateIPv4(in_addr addr) {
 
 sockaddr TranslateFromSockAddrIn(SockAddrIn input) {
     sockaddr_in result;
+    std::memset(&result, 0, sizeof(result));
 
     switch (static_cast<Domain>(input.family)) {
     case Domain::INET:
         result.sin_family = AF_INET;
         break;
     default:
-        UNIMPLEMENTED_MSG("Unhandled sockaddr family={}", static_cast<int>(input.family));
+        UNIMPLEMENTED_MSG("Unhandled sockaddr_data family={}", static_cast<int>(input.family));
         result.sin_family = AF_INET;
         break;
     }
@@ -193,6 +193,8 @@ int TranslateDomain(Domain domain) {
 
 int TranslateType(Type type) {
     switch (type) {
+    case Type::UNSPECIFIED:
+        return 0;
     case Type::STREAM:
         return SOCK_STREAM;
     case Type::DGRAM:
@@ -203,8 +205,24 @@ int TranslateType(Type type) {
     }
 }
 
+Type TranslateType(int type) {
+    switch (type) {
+    case 0:
+        return Type::UNSPECIFIED;
+    case SOCK_STREAM:
+        return Type::STREAM;
+    case SOCK_DGRAM:
+        return Type::DGRAM;
+    default:
+        UNIMPLEMENTED_MSG("Unimplemented type={}", type);
+        return {};
+    }
+}
+
 int TranslateProtocol(Protocol protocol) {
     switch (protocol) {
+    case Protocol::UNSPECIFIED:
+        return 0;
     case Protocol::TCP:
         return IPPROTO_TCP;
     case Protocol::UDP:
@@ -215,27 +233,39 @@ int TranslateProtocol(Protocol protocol) {
     }
 }
 
+Protocol TranslateProtocol(int protocol) {
+    switch (protocol) {
+    case 0:
+        return Protocol::UNSPECIFIED;
+    case IPPROTO_TCP:
+        return Protocol::TCP;
+    case IPPROTO_UDP:
+        return Protocol::UDP;
+    default:
+        UNIMPLEMENTED_MSG("Unimplemented protocol={}", protocol);
+        return {};
+    }
+}
+
+Domain TranslateFamily(int family) {
+    switch (family) {
+    case AF_INET:
+        return Domain::INET;
+    default:
+        UNIMPLEMENTED_MSG("Unhandled sockaddr_data family={}", family);
+        return Domain::INET;
+    }
+}
+
 SockAddrIn TranslateToSockAddrIn(sockaddr input_) {
     sockaddr_in input;
     std::memcpy(&input, &input_, sizeof(input));
 
-    SockAddrIn result;
-
-    switch (input.sin_family) {
-    case AF_INET:
-        result.family = Domain::INET;
-        break;
-    default:
-        UNIMPLEMENTED_MSG("Unhandled sockaddr family={}", input.sin_family);
-        result.family = Domain::INET;
-        break;
-    }
-
-    result.portno = ntohs(input.sin_port);
-
-    result.ip = TranslateIPv4(input.sin_addr);
-
-    return result;
+    return SockAddrIn{
+        .family = TranslateFamily(input.sin_family),
+        .ip = TranslateIPv4(input.sin_addr),
+        .portno = ntohs(input.sin_port),
+    };
 }
 
 u16 TranslatePollEvents(u32 events) {
@@ -257,6 +287,26 @@ u16 TranslatePollEvents(u32 events) {
         events &= ~POLL_OUT;
         result |= POLLOUT;
     }
+    if (events & POLL_RDNORM) {
+        events &= ~POLL_RDNORM;
+        result |= POLLRDNORM;
+    }
+    if (events & POLL_RDBAND) {
+        events &= ~POLL_RDBAND;
+#ifdef _WIN32
+        LOG_WARNING(Service, "Winsock doesn't support POLLRDBAND");
+#else
+        result |= POLLRDBAND;
+#endif
+    }
+    if (events & POLL_WRBAND) {
+        events &= ~POLL_WRBAND;
+#ifdef _WIN32
+        LOG_WARNING(Service, "Winsock doesn't support POLLWRBAND");
+#else
+        result |= POLLWRBAND;
+#endif
+    }
 
     UNIMPLEMENTED_IF_MSG(events != 0, "Unhandled guest events=0x{:x}", events);
 
@@ -277,10 +327,41 @@ u16 TranslatePollRevents(u32 revents) {
     translate(POLLOUT, POLL_OUT);
     translate(POLLERR, POLL_ERR);
     translate(POLLHUP, POLL_HUP);
+    translate(POLLRDNORM, POLL_RDNORM);
+    translate(POLLRDBAND, POLL_RDBAND);
+    translate(POLLWRBAND, POLL_WRBAND);
 
     UNIMPLEMENTED_IF_MSG(revents != 0, "Unhandled host revents=0x{:x}", revents);
 
     return static_cast<u16>(result);
+}
+
+std::pair<HostEnt, Errno> TranslateHostEnt(hostent* info) {
+    HostEnt result;
+
+    result.name = info->h_name;
+
+    for (char** alias = info->h_aliases; *alias; ++alias) {
+        result.aliases.push_back(*alias);
+    }
+
+    switch (info->h_addrtype) {
+    case AF_INET:
+        ASSERT(info->h_length == sizeof(IPv4Address));
+        result.addr_type = Domain::INET;
+        for (char** data = info->h_addr_list; *data; ++data) {
+            in_addr addr;
+            std::memcpy(&addr, *data, sizeof(addr));
+            result.addr_list.push_back(TranslateIPv4(addr));
+        }
+        break;
+    default:
+        UNIMPLEMENTED_MSG("Unimplemented addr_type={}", info->h_addrtype);
+        result.addr_type = Domain::INET;
+        break;
+    }
+
+    return {result, Errno::SUCCESS};
 }
 
 template <typename T>
@@ -293,6 +374,48 @@ Errno SetSockOpt(SOCKET fd, int option, T value) {
     const int ec = LastError();
     UNREACHABLE_MSG("Unhandled host socket error={}", ec);
     return Errno::SUCCESS;
+}
+
+AddrInfo TranslateToAddrInfo(addrinfo* input) {
+    ASSERT(input->ai_flags == 0);
+    return AddrInfo{
+        .flags = 0,
+        .family = TranslateFamily(input->ai_family),
+        .socket_type = TranslateType(input->ai_socktype),
+        .protocol = TranslateProtocol(input->ai_protocol),
+        .addr = TranslateToSockAddrIn(*input->ai_addr),
+        .canonname = input->ai_canonname ? input->ai_canonname : "",
+    };
+}
+
+struct HostAddrInfo {
+    std::string canonname;
+    std::unique_ptr<sockaddr> sockaddr_data;
+    addrinfo addrinfo_data;
+};
+
+HostAddrInfo TranslateToHostAddrInfo(const AddrInfo& input) {
+    ASSERT(input.flags == 0);
+    ASSERT(input.family == Domain::INET);
+
+    HostAddrInfo result = {
+        .canonname = input.canonname,
+        .addrinfo_data =
+            {
+                .ai_flags = 0,
+                .ai_family = TranslateDomain(input.family),
+                .ai_socktype = TranslateType(input.socket_type),
+                .ai_protocol = TranslateProtocol(input.protocol),
+                .ai_canonname = result.canonname.empty() ? nullptr : result.canonname.data(),
+            },
+    };
+    if (input.addr.ip != IPv4Address{0, 0, 0, 0} || input.addr.portno != 0) {
+        result.sockaddr_data = std::make_unique<sockaddr>(TranslateFromSockAddrIn(input.addr));
+        result.addrinfo_data.ai_addrlen = sizeof(sockaddr);
+        result.addrinfo_data.ai_addr = result.sockaddr_data.get();
+    }
+
+    return result;
 }
 
 } // Anonymous namespace
@@ -330,11 +453,62 @@ std::pair<IPv4Address, Errno> GetHostIPv4Address() {
     return {TranslateIPv4(addr), Errno::SUCCESS};
 }
 
-std::pair<s32, Errno> Poll(std::vector<PollFD>& pollfds, s32 timeout) {
-    const size_t num = pollfds.size();
+std::pair<HostEnt, Errno> GetHostByName(const char* name) {
+    hostent* const info = gethostbyname(name);
+    if (info == nullptr) {
+        UNIMPLEMENTED_MSG("Unhandled gethostbyname error");
+        return {HostEnt{}, Errno::SUCCESS};
+    }
+    return TranslateHostEnt(info);
+}
 
-    std::vector<WSAPOLLFD> host_pollfds(pollfds.size());
-    std::transform(pollfds.begin(), pollfds.end(), host_pollfds.begin(), [](PollFD fd) {
+std::pair<HostEnt, Errno> GetHostByAddr(const char* addr, int len, Domain type) {
+    hostent* const info = gethostbyaddr(addr, len, TranslateDomain(type));
+    if (info == nullptr) {
+        UNIMPLEMENTED_MSG("Unhandled gethostbyname error");
+        return {HostEnt{}, Errno::SUCCESS};
+    }
+    return TranslateHostEnt(info);
+}
+
+std::pair<std::vector<AddrInfo>, Errno> GetAddressInfo(const char* node, const char* service,
+                                                       const std::vector<AddrInfo>& hints) {
+    const size_t len = hints.size();
+    std::vector<HostAddrInfo> host_hints(len);
+    for (size_t i = 0; i < len; ++i) {
+        host_hints[i] = TranslateToHostAddrInfo(hints[i]);
+        if (i + 1 < len) {
+            host_hints[i].addrinfo_data.ai_next = &host_hints[i + 1].addrinfo_data;
+        }
+    }
+
+    addrinfo* linked_list;
+    int err;
+    if (hints.empty()) {
+        err = getaddrinfo(node, service, nullptr, &linked_list);
+    } else {
+        err = getaddrinfo(node, service, &host_hints[0].addrinfo_data, &linked_list);
+    }
+    if (err != 0) {
+        UNIMPLEMENTED_MSG("Unhandled error code={}", err);
+        return {};
+    }
+
+    std::vector<AddrInfo> results;
+    for (addrinfo* addr = linked_list; addr; addr = addr->ai_next) {
+        results.push_back(TranslateToAddrInfo(addr));
+    }
+    freeaddrinfo(linked_list);
+    return {std::move(results), Errno::SUCCESS};
+}
+
+std::pair<s32, Errno> Poll(size_t nfds, PollFD* pollfds, s32 timeout) {
+    if (nfds == 0) {
+        return {-1, Errno::SUCCESS};
+    }
+
+    std::vector<WSAPOLLFD> host_pollfds(nfds);
+    std::transform(pollfds, pollfds + nfds, host_pollfds.begin(), [](PollFD fd) {
         WSAPOLLFD result;
         result.fd = fd.socket->fd;
         result.events = TranslatePollEvents(fd.events);
@@ -342,14 +516,14 @@ std::pair<s32, Errno> Poll(std::vector<PollFD>& pollfds, s32 timeout) {
         return result;
     });
 
-    const int result = WSAPoll(host_pollfds.data(), static_cast<ULONG>(num), timeout);
+    const int result = WSAPoll(host_pollfds.data(), static_cast<ULONG>(nfds), timeout);
     if (result == 0) {
         ASSERT(std::all_of(host_pollfds.begin(), host_pollfds.end(),
                            [](WSAPOLLFD fd) { return fd.revents == 0; }));
         return {0, Errno::SUCCESS};
     }
 
-    for (size_t i = 0; i < num; ++i) {
+    for (size_t i = 0; i < nfds; ++i) {
         pollfds[i].revents = TranslatePollRevents(static_cast<u32>(host_pollfds[i].revents));
     }
 
@@ -583,7 +757,7 @@ std::pair<s32, Errno> Socket::SendTo(u32 flags, const std::vector<u8>& message,
     ASSERT(flags == 0);
 
     const sockaddr* to = nullptr;
-    const int tolen = addr ? 0 : sizeof(sockaddr);
+    const int tolen = addr ? sizeof(sockaddr) : 0;
     sockaddr host_addr_in;
 
     if (addr) {

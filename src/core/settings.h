@@ -67,6 +67,31 @@ private:
     Type local{};
 };
 
+template <typename Type>
+class InputSetting final {
+public:
+    InputSetting() = default;
+    explicit InputSetting(Type val) : global{val} {}
+    ~InputSetting() = default;
+    void SetGlobal(bool to_global) {
+        use_global = to_global;
+    }
+    bool UsingGlobal() const {
+        return use_global;
+    }
+    Type& GetValue(bool need_global = false) {
+        if (use_global || need_global) {
+            return global;
+        }
+        return local;
+    }
+
+private:
+    bool use_global = true;
+    Type global{};
+    Type local{};
+};
+
 struct TouchFromButtonMap {
     std::string name;
     std::vector<std::string> buttons;
@@ -135,9 +160,18 @@ struct Values {
     Setting<s32> sound_index;
 
     // Controls
-    std::array<PlayerInput, 10> players;
+    InputSetting<std::array<PlayerInput, 10>> players;
 
-    bool use_docked_mode;
+    Setting<bool> use_docked_mode;
+
+    Setting<bool> vibration_enabled;
+    Setting<bool> enable_accurate_vibrations;
+
+    Setting<bool> motion_enabled;
+    std::string motion_device;
+    std::string udp_input_address;
+    u16 udp_input_port;
+    u8 udp_pad_index;
 
     bool mouse_enabled;
     std::string mouse_device;
@@ -151,19 +185,14 @@ struct Values {
     ButtonsRaw debug_pad_buttons;
     AnalogsRaw debug_pad_analogs;
 
-    bool vibration_enabled;
-
-    bool motion_enabled;
-    std::string motion_device;
-    std::string touch_device;
     TouchscreenInput touchscreen;
-    std::atomic_bool is_device_reload_pending{true};
+
     bool use_touch_from_button;
+    std::string touch_device;
     int touch_from_button_map_index;
-    std::string udp_input_address;
-    u16 udp_input_port;
-    u8 udp_pad_index;
     std::vector<TouchFromButtonMap> touch_from_button_maps;
+
+    std::atomic_bool is_device_reload_pending{true};
 
     // Data Storage
     bool use_virtual_sd;
@@ -195,6 +224,9 @@ struct Values {
     std::string web_api_url;
     std::string yuzu_username;
     std::string yuzu_token;
+
+    // Network
+    std::atomic_bool is_airplane_mode;
 
     // Add-Ons
     std::map<u64, std::vector<std::string>> disabled_addons;

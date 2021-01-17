@@ -17,12 +17,17 @@ namespace Ui {
 class ConfigureDialog;
 }
 
+class FriendsList;
+class OnlineStatusMonitor;
+
 class ConfigureDialog : public QDialog {
     Q_OBJECT
 
 public:
     explicit ConfigureDialog(QWidget* parent, HotkeyRegistry& registry,
-                             InputCommon::InputSubsystem* input_subsystem);
+                             InputCommon::InputSubsystem* input_subsystem,
+                             Core::OnlineInitiator& online_initiator,
+                             OnlineStatusMonitor* online_status_monitor, FriendsList* friend_list);
     ~ConfigureDialog() override;
 
     void ApplyConfiguration();

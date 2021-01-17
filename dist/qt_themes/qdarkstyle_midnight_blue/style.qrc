@@ -8,6 +8,25 @@
     <file alias="48x48/folder.png">icons/48x48/folder.png</file>
     <file alias="48x48/plus.png">icons/48x48/plus.png</file>
     <file alias="48x48/sd_card.png">icons/48x48/sd_card.png</file>
+    <file alias="48x48/public.png">../qdarkstyle/icons/48x48/public.png</file>
+    <file alias="48x48/public_off.png">../qdarkstyle/icons/48x48/public_off.png</file>
+    <file alias="48x48/airplanemode.png">../qdarkstyle/icons/48x48/airplanemode.png</file>
+    <file alias="48x48/sync.png">../qdarkstyle/icons/48x48/sync.png</file>
+    <file alias="48x48/avatar-sync-error.png">../qdarkstyle/icons/48x48/avatar-sync-error.png</file>
+    <file alias="48x48/user_remove_hover.png">../qdarkstyle/icons/48x48/user_remove_hover.png</file>
+    <file alias="48x48/user_remove.png">../qdarkstyle/icons/48x48/user_remove.png</file>
+    <file alias="48x48/user_online.png">../qdarkstyle/icons/48x48/user_online.png</file>
+    <file alias="48x48/user_offline.png">../qdarkstyle/icons/48x48/user_offline.png</file>
+    <file alias="48x48/user_list_hover.png">../qdarkstyle/icons/48x48/user_list_hover.png</file>
+    <file alias="48x48/user_list.png">../qdarkstyle/icons/48x48/user_list.png</file>
+    <file alias="48x48/user_block_hover.png">../qdarkstyle/icons/48x48/user_block_hover.png</file>
+    <file alias="48x48/user_block.png">../qdarkstyle/icons/48x48/user_block.png</file>
+    <file alias="48x48/user_add_hover.png">../qdarkstyle/icons/48x48/user_add_hover.png</file>
+    <file alias="48x48/user_add.png">../qdarkstyle/icons/48x48/user_add.png</file>
+    <file alias="48x48/arrow_back_hover.png">../qdarkstyle/icons/48x48/arrow_back_hover.png</file>
+    <file alias="48x48/arrow_back.png">../qdarkstyle/icons/48x48/arrow_back.png</file>
+    <file alias="48x48/portrait_sync.png">../qdarkstyle/icons/48x48/portrait_sync.png</file>
+    <file alias="48x48/portrait_sync_error.png">../qdarkstyle/icons/48x48/portrait_sync_error.png</file>
     <file alias="256x256/plus_folder.png">icons/256x256/plus_folder.png</file>
   </qresource>
   <qresource prefix="qss_icons">

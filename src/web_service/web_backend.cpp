@@ -127,13 +127,18 @@ struct Client::Impl {
         return WebResult{WebResult::Code::Success, "", response.body};
     }
 
+    // Retrieve the internal JWT from a given username and token
+    WebResult GetInternalJWT() {
+        return GenericRequest("POST", "/jwt/internal", "", "text/html", "", username, token);
+    }
+
     // Retrieve a new JWT from given username and token
     void UpdateJWT() {
         if (username.empty() || token.empty()) {
             return;
         }
 
-        auto result = GenericRequest("POST", "/jwt/internal", "", "text/html", "", username, token);
+        auto result = GetInternalJWT();
         if (result.result_code != WebResult::Code::Success) {
             LOG_ERROR(WebService, "UpdateJWT failed");
         } else {
@@ -183,6 +188,10 @@ WebResult Client::GetPlain(const std::string& path, bool allow_anonymous) {
 
 WebResult Client::GetImage(const std::string& path, bool allow_anonymous) {
     return impl->GenericRequest("GET", path, "", allow_anonymous, "image/png");
+}
+
+WebResult Client::GetInternalJWT() {
+    return impl->GetInternalJWT();
 }
 
 WebResult Client::GetExternalJWT(const std::string& audience) {

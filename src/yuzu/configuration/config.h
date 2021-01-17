@@ -16,11 +16,23 @@ class QSettings;
 
 class Config {
 public:
-    explicit Config(const std::string& config_loc = "qt-config.ini", bool is_global = true);
+    enum class ConfigType {
+        GlobalConfig,
+        PerGameConfig,
+        InputProfile,
+    };
+
+    explicit Config(const std::string& config_name = "qt-config",
+                    ConfigType config_type = ConfigType::GlobalConfig);
     ~Config();
 
     void Reload();
     void Save();
+
+    void ReadControlPlayerValue(std::size_t player_index);
+    void SaveControlPlayerValue(std::size_t player_index);
+
+    const std::string GetConfigFilePath() const;
 
     static const std::array<int, Settings::NativeButton::NumButtons> default_buttons;
     static const std::array<int, Settings::NativeMotion::NumMotions> default_motions;
@@ -34,7 +46,7 @@ public:
 
 private:
     void ReadValues();
-    void ReadPlayerValues();
+    void ReadPlayerValue(std::size_t player_index);
     void ReadDebugValues();
     void ReadKeyboardValues();
     void ReadMouseValues();
@@ -60,13 +72,15 @@ private:
     void ReadUIGamelistValues();
     void ReadUILayoutValues();
     void ReadWebServiceValues();
+    void ReadNetworkValues();
 
     void SaveValues();
-    void SavePlayerValues();
+    void SavePlayerValue(std::size_t player_index);
     void SaveDebugValues();
     void SaveMouseValues();
     void SaveTouchscreenValues();
     void SaveMotionTouchValues();
+    void SaveInputProfileNames();
 
     // Save functions based off the respective config section names.
     void SaveAudioValues();
@@ -87,6 +101,7 @@ private:
     void SaveUIGamelistValues();
     void SaveUILayoutValues();
     void SaveWebServiceValues();
+    void SaveNetworkValues();
 
     QVariant ReadSetting(const QString& name) const;
     QVariant ReadSetting(const QString& name, const QVariant& default_value) const;
@@ -111,9 +126,9 @@ private:
     void WriteSettingGlobal(const QString& name, const QVariant& value, bool use_global,
                             const QVariant& default_value);
 
+    ConfigType type;
     std::unique_ptr<QSettings> qt_config;
     std::string qt_config_loc;
-
     bool global;
 };
 

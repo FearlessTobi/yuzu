@@ -43,6 +43,7 @@ u32 nvhost_nvdec::ioctl(Ioctl command, const std::vector<u8>& input, const std::
         Tegra::ChCommandHeaderList cmdlist(1);
         cmdlist[0] = Tegra::ChCommandHeader{0xDEADB33F};
         system.GPU().PushCommandBuffer(cmdlist);
+        system.GPU().MemoryManager().InvalidateQueuedCaches();
         [[fallthrough]]; // fallthrough to unmap buffers
     };
     case IoctlCommand::IocUnmapBuffer:

@@ -12,6 +12,7 @@
 
 #include "yuzu/configuration/configure_input_advanced.h"
 #include "yuzu/configuration/configure_input_player.h"
+#include "yuzu/configuration/input_profiles.h"
 
 #include "ui_configure_input.h"
 
@@ -51,6 +52,7 @@ private:
 
     void UpdateDockedState(bool is_handheld);
     void UpdateAllInputDevices();
+    void UpdateAllInputProfiles(std::size_t player_index);
 
     /// Load configuration settings.
     void LoadConfiguration();
@@ -60,6 +62,8 @@ private:
     void RestoreDefaults();
 
     std::unique_ptr<Ui::ConfigureInput> ui;
+
+    std::unique_ptr<InputProfiles> profiles;
 
     std::array<ConfigureInputPlayer*, 8> player_controllers;
     std::array<QWidget*, 8> player_tabs;

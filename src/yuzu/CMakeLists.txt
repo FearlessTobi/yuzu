@@ -22,9 +22,16 @@ add_executable(yuzu
     applets/web_browser.h
     bootmanager.cpp
     bootmanager.h
+    clickable_icon.cpp
+    clickable_icon.h
     compatdb.ui
     compatibility_list.cpp
     compatibility_list.h
+    configuration/input_profiles.cpp
+    configuration/input_profiles.h
+    configuration/configure_vibration.cpp
+    configuration/configure_vibration.h
+    configuration/configure_vibration.ui
     configuration/config.cpp
     configuration/config.h
     configuration/configuration_shared.cpp
@@ -68,18 +75,21 @@ add_executable(yuzu
     configuration/configure_input_advanced.cpp
     configuration/configure_input_advanced.h
     configuration/configure_input_advanced.ui
-    configuration/configure_input_dialog.cpp
-    configuration/configure_input_dialog.h
-    configuration/configure_input_dialog.ui
     configuration/configure_input_player.cpp
     configuration/configure_input_player.h
     configuration/configure_input_player.ui
+    configuration/configure_input_profile_dialog.cpp
+    configuration/configure_input_profile_dialog.h
+    configuration/configure_input_profile_dialog.ui
     configuration/configure_motion_touch.cpp
     configuration/configure_motion_touch.h
     configuration/configure_motion_touch.ui
     configuration/configure_mouse_advanced.cpp
     configuration/configure_mouse_advanced.h
     configuration/configure_mouse_advanced.ui
+    configuration/configure_online.cpp
+    configuration/configure_online.h
+    configuration/configure_online.ui
     configuration/configure_per_game.cpp
     configuration/configure_per_game.h
     configuration/configure_per_game.ui
@@ -105,9 +115,6 @@ add_executable(yuzu
     configuration/configure_ui.cpp
     configuration/configure_ui.h
     configuration/configure_ui.ui
-    configuration/configure_web.cpp
-    configuration/configure_web.h
-    configuration/configure_web.ui
     debugger/console.cpp
     debugger/console.h
     debugger/profiler.cpp
@@ -130,6 +137,22 @@ add_executable(yuzu
     main.cpp
     main.h
     main.ui
+    online/friends.cpp
+    online/friends.h
+    online/friends.ui
+    online/monitor.cpp
+    online/monitor.h
+    online/notification.cpp
+    online/notification.h
+    online/notification_queue.cpp
+    online/notification_queue.h
+    online/online_util.cpp
+    online/online_util.h
+    online/types.h
+    online/user_delegate.cpp
+    online/user_delegate.h
+    overlay.cpp
+    overlay.h
     uisettings.cpp
     uisettings.h
     util/limitable_input_dialog.cpp
@@ -209,7 +232,7 @@ endif()
 create_target_directory_groups(yuzu)
 
 target_link_libraries(yuzu PRIVATE common core input_common video_core)
-target_link_libraries(yuzu PRIVATE Boost::boost glad Qt5::Widgets)
+target_link_libraries(yuzu PRIVATE Boost::boost glad Qt5::Widgets nlohmann_json::nlohmann_json httplib ixwebsocket)
 target_link_libraries(yuzu PRIVATE ${PLATFORM_LIBRARIES} Threads::Threads)
 
 if (ENABLE_VULKAN AND NOT WIN32)

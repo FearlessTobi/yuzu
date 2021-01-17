@@ -59,6 +59,11 @@ public:
     WebResult GetImage(const std::string& path, bool allow_anonymous);
 
     /**
+     * Gets the internal JWT
+     */
+    WebResult GetInternalJWT();
+
+    /**
      * Requests an external JWT for the specific audience provided.
      * @param audience the audience of the JWT requested.
      * @return the result of the request.

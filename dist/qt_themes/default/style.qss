@@ -1,3 +1,7 @@
+QAbstractSpinBox {
+    min-height: 19px;
+}
+
 QPushButton#TogglableStatusBarButton {
     color: #959595;
     border: 1px solid transparent;
@@ -35,10 +39,10 @@ QPushButton#RendererStatusBarButton:!checked {
 }
 
 QPushButton#buttonRefreshDevices {
-    min-width: 20px;
-    min-height: 20px;
-    max-width: 20px;
-    max-height: 20px;
+    min-width: 21px;
+    min-height: 21px;
+    max-width: 21px;
+    max-height: 21px;
 }
 
 QWidget#bottomPerGameInput,
@@ -71,7 +75,7 @@ QWidget#middleControllerApplet {
 
 QWidget#topPerGameInput QComboBox,
 QWidget#middleControllerApplet QComboBox {
-    width: 123px;
+    width: 120px;
 }
 
 QWidget#connectedControllers {
@@ -276,4 +280,57 @@ QWidget#controllerPlayer6,
 QWidget#controllerPlayer7,
 QWidget#controllerPlayer8 {
     background: transparent;
+}
+
+QPushButton#OnlineStatusButton {
+    color: #000000;
+    border: 1px solid transparent;
+    background-color: transparent;
+    padding: 0px 3px 0px 3px;
+    text-align: right;
+}
+
+QPushButton#OnlineStatusButton:hover {
+    border: 1px solid #76797C;
+}
+
+QToolBox#friendsListToolBox,
+QToolBox#friendsAddToolBox,
+QToolBox#friendsBlockToolBox {
+  padding: 5px;
+  border: 1px transparent black;
+}
+
+QToolBox#friendsListToolBox::tab,
+QToolBox#friendsAddToolBox::tab,
+QToolBox#friendsBlockToolBox::tab {
+  border: 1px solid #76797C;
+  border-radius: 2px;
+}
+
+QToolBox#friendsListToolBox::tab:selected,
+QToolBox#friendsAddToolBox::tab:selected,
+QToolBox#friendsBlockToolBox::tab:selected {
+  font: regular;
+  border-color: #3daee9;
+  border-radius: 2px;
+}
+
+QPushButton#button_friend_add,
+QPushButton#button_friend_block {
+  border: 1px solid #adadad;
+  background: #e1e1e1;
+  padding: 3px 8px;
+}
+
+QPushButton#button_friend_add:hover,
+QPushButton#button_friend_block:hover {
+  border: 1px solid #0078d7;
+  background: #e5f1fb;
+}
+
+QPushButton#button_friend_add:pressed,
+QPushButton#button_friend_block:pressed {
+  border: 1px solid #00559b;
+  background: #cce4f7;
 }

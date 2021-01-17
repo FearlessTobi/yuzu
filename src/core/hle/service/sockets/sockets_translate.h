@@ -28,7 +28,13 @@ Domain Translate(Network::Domain domain);
 Network::Type Translate(Type type);
 
 /// Translate guest protocol to abstract protocol
+Network::Protocol Translate(Protocol protocol);
+
+/// Translate guest protocol to abstract protocol
 Network::Protocol Translate(Type type, Protocol protocol);
+
+/// Translate abstract protocol to guest protocol
+Protocol Translate(Network::Protocol protocol);
 
 /// Translate abstract poll event flags to guest poll event flags
 u16 TranslatePollEventsToHost(u32 flags);

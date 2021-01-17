@@ -4,6 +4,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include "common/common_paths.h"
 #include "common/common_types.h"
 #include "common/file_util.h"
@@ -17,6 +22,8 @@
 #include "core/hle/ipc_helpers.h"
 #include "core/hle/kernel/kernel.h"
 #include "core/hle/kernel/process.h"
+#include "core/hle/kernel/readable_event.h"
+#include "core/hle/kernel/writable_event.h"
 #include "core/hle/service/acc/acc.h"
 #include "core/hle/service/acc/acc_aa.h"
 #include "core/hle/service/acc/acc_su.h"
@@ -24,10 +31,13 @@
 #include "core/hle/service/acc/acc_u1.h"
 #include "core/hle/service/acc/errors.h"
 #include "core/hle/service/acc/profile_manager.h"
+#include "core/hle/service/acc/token_granter.h"
 #include "core/hle/service/glue/arp.h"
 #include "core/hle/service/glue/manager.h"
 #include "core/hle/service/sm/sm.h"
 #include "core/loader/loader.h"
+#include "core/online_initiator.h"
+#include "core/settings.h"
 
 namespace Service::Account {
 
@@ -438,18 +448,57 @@ public:
 
 class IAsyncContext final : public ServiceFramework<IAsyncContext> {
 public:
-    explicit IAsyncContext(Common::UUID user_id) : ServiceFramework("IAsyncContext") {
+    explicit IAsyncContext(Core::System& system, Common::UUID user_id, std::string& output_token,
+                           u64& id)
+        : ServiceFramework("IAsyncContext"), granter(system, output_token, id) {
         // clang-format off
         static const FunctionInfo functions[] = {
-            {0, nullptr, "GetSystemEvent"},
-            {1, nullptr, "Cancel"},
-            {2, nullptr, "HasDone"},
-            {3, nullptr, "GetResult"},
+            {0, &IAsyncContext::GetSystemEvent, "GetSystemEvent"},
+            {1, &IAsyncContext::Cancel, "Cancel"},
+            {2, &IAsyncContext::HasDone, "HasDone"},
+            {3, &IAsyncContext::GetResult, "GetResult"},
         };
         // clang-format on
 
         RegisterHandlers(functions);
     }
+
+private:
+    void GetSystemEvent(Kernel::HLERequestContext& ctx) {
+        LOG_DEBUG(Service_ACC, "called");
+
+        IPC::ResponseBuilder rb{ctx, 2, 1};
+        rb.Push(RESULT_SUCCESS);
+        rb.PushCopyObjects(granter.GetSystemEvent());
+    }
+
+    void Cancel(Kernel::HLERequestContext& ctx) {
+        LOG_WARNING(Service_ACC, "(STUBBED) called");
+
+        // TODO: Test if this has to signal the system event or not
+        // TODO: Check the result value set by this
+        granter.Cancel();
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(RESULT_SUCCESS);
+    }
+
+    void HasDone(Kernel::HLERequestContext& ctx) {
+        LOG_DEBUG(Service_ACC, "called");
+
+        IPC::ResponseBuilder rb{ctx, 3};
+        rb.Push(RESULT_SUCCESS);
+        rb.Push<u8>(granter.HasDone() ? 1 : 0);
+    }
+
+    void GetResult(Kernel::HLERequestContext& ctx) {
+        LOG_DEBUG(Service_ACC, "called");
+
+        IPC::ResponseBuilder rb{ctx, 2};
+        rb.Push(granter.GetResult());
+    }
+
+    TokenGranter granter;
 };
 
 class ISessionObject final : public ServiceFramework<ISessionObject> {
@@ -486,14 +535,14 @@ public:
 
 class IManagerForApplication final : public ServiceFramework<IManagerForApplication> {
 public:
-    explicit IManagerForApplication(Common::UUID user_id)
-        : ServiceFramework("IManagerForApplication"), user_id(user_id) {
+    explicit IManagerForApplication(Core::System& system_, Common::UUID user_id_)
+        : ServiceFramework("IManagerForApplication"), system(system_), user_id(user_id_) {
         // clang-format off
         static const FunctionInfo functions[] = {
             {0, &IManagerForApplication::CheckAvailability, "CheckAvailability"},
             {1, &IManagerForApplication::GetAccountId, "GetAccountId"},
-            {2, nullptr, "EnsureIdTokenCacheAsync"},
-            {3, nullptr, "LoadIdTokenCache"},
+            {2, &IManagerForApplication::EnsureIdTokenCacheAsync, "EnsureIdTokenCacheAsync"},
+            {3, &IManagerForApplication::LoadIdTokenCache, "LoadIdTokenCache"},
             {130, nullptr, "GetNintendoAccountUserResourceCacheForApplication"},
             {150, nullptr, "CreateAuthorizationRequest"},
             {160, &IManagerForApplication::StoreOpenContext, "StoreOpenContext"},
@@ -507,9 +556,8 @@ public:
 private:
     void CheckAvailability(Kernel::HLERequestContext& ctx) {
         LOG_WARNING(Service_ACC, "(STUBBED) called");
-        IPC::ResponseBuilder rb{ctx, 3};
+        IPC::ResponseBuilder rb{ctx, 2};
         rb.Push(RESULT_SUCCESS);
-        rb.Push(false); // TODO: Check when this is supposed to return true and when not
     }
 
     void GetAccountId(Kernel::HLERequestContext& ctx) {
@@ -517,7 +565,25 @@ private:
 
         IPC::ResponseBuilder rb{ctx, 4};
         rb.Push(RESULT_SUCCESS);
-        rb.PushRaw<u64>(user_id.GetNintendoID());
+        rb.Push<u64>(id);
+    }
+
+    void EnsureIdTokenCacheAsync(Kernel::HLERequestContext& ctx) {
+        LOG_DEBUG(Service_ACC, "called");
+
+        IPC::ResponseBuilder rb{ctx, 2, 0, 1};
+        rb.Push(RESULT_SUCCESS);
+        rb.PushIpcInterface<IAsyncContext>(system, user_id, token, id);
+    }
+
+    void LoadIdTokenCache(Kernel::HLERequestContext& ctx) {
+        LOG_WARNING(Service_ACC, "(STUBBED) called");
+
+        ctx.WriteBuffer(token);
+
+        IPC::ResponseBuilder rb{ctx, 3};
+        rb.Push(RESULT_SUCCESS);
+        rb.Push<u32>(static_cast<u32>(token.size()));
     }
 
     void StoreOpenContext(Kernel::HLERequestContext& ctx) {
@@ -526,7 +592,10 @@ private:
         rb.Push(RESULT_SUCCESS);
     }
 
+    Core::System& system;
     Common::UUID user_id;
+    std::string token;
+    u64 id = 0;
 };
 
 // 6.0.0+
@@ -730,7 +799,7 @@ void Module::Interface::GetBaasAccountManagerForApplication(Kernel::HLERequestCo
     LOG_DEBUG(Service_ACC, "called");
     IPC::ResponseBuilder rb{ctx, 2, 0, 1};
     rb.Push(RESULT_SUCCESS);
-    rb.PushIpcInterface<IManagerForApplication>(profile_manager->GetLastOpenedUser());
+    rb.PushIpcInterface<IManagerForApplication>(system, profile_manager->GetLastOpenedUser());
 }
 
 void Module::Interface::IsUserAccountSwitchLocked(Kernel::HLERequestContext& ctx) {
@@ -788,7 +857,7 @@ void Module::Interface::LoadOpenContext(Kernel::HLERequestContext& ctx) {
     // TODO: Find the differences between this and GetBaasAccountManagerForApplication
     IPC::ResponseBuilder rb{ctx, 2, 0, 1};
     rb.Push(RESULT_SUCCESS);
-    rb.PushIpcInterface<IManagerForApplication>(profile_manager->GetLastOpenedUser());
+    rb.PushIpcInterface<IManagerForApplication>(system, profile_manager->GetLastOpenedUser());
 }
 
 void Module::Interface::ListOpenContextStoredUsers(Kernel::HLERequestContext& ctx) {

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <list>
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -15,17 +16,23 @@
 #include "common/common_types.h"
 #include "core/core.h"
 #include "core/hle/service/acc/profile_manager.h"
+#include "core/online_initiator.h"
 #include "ui_main.h"
 #include "yuzu/compatibility_list.h"
 #include "yuzu/hotkeys.h"
+#include "yuzu/overlay.h"
 
 class Config;
 class EmuThread;
+class FriendsList;
 class GameList;
+class GameListPlaceholder;
 class GImageInfo;
 class GRenderWindow;
 class LoadingScreen;
 class MicroProfileDialog;
+class NotificationQueue;
+class OnlineStatusMonitor;
 class ProfilerWidget;
 class QLabel;
 class QPushButton;
@@ -34,7 +41,6 @@ class WaitTreeWidget;
 enum class GameListOpenTarget;
 enum class GameListRemoveTarget;
 enum class InstalledEntryType;
-class GameListPlaceholder;
 
 namespace Core::Frontend {
 struct ControllerParameters;
@@ -129,6 +135,8 @@ signals:
     void WebBrowserUnpackRomFS();
     void WebBrowserFinishedBrowsing();
 
+    void ChangeAirplaneMode();
+
 public slots:
     void OnLoadComplete();
     void ControllerSelectorReconfigureControllers(
@@ -194,7 +202,9 @@ private:
     bool ConfirmChangeGame();
     bool ConfirmForceLockedExit();
     void RequestGameExit();
+
     void closeEvent(QCloseEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     void OnStartGame();
@@ -237,6 +247,9 @@ private slots:
     void HideFullscreen();
     void ToggleWindowMode();
     void ResetWindowSize();
+    void OnTriggerAirplaneMode();
+    void OnChangeAirplaneMode();
+    void OnOpenFriendList();
     void OnCaptureScreenshot();
     void OnCoreError(Core::System::ResultStatus, std::string);
     void OnReinitializeKeys(ReinitializeKeyBehavior behavior);
@@ -251,6 +264,7 @@ private:
     std::optional<u64> SelectRomFSDumpTarget(const FileSys::ContentProvider&, u64 program_id);
     InstallResult InstallNSPXCI(const QString& filename);
     InstallResult InstallNCA(const QString& filename);
+    void MigrateConfigFiles();
     void UpdateWindowTitle(const std::string& title_name = {},
                            const std::string& title_version = {});
     void UpdateStatusBar();
@@ -267,6 +281,8 @@ private:
     std::shared_ptr<InputCommon::InputSubsystem> input_subsystem;
 
     GRenderWindow* render_window;
+    FriendsList* friend_list;
+    NotificationQueue* notification_queue;
     GameList* game_list;
     LoadingScreen* loading_screen;
 
@@ -282,6 +298,7 @@ private:
     QPushButton* multicore_status_button = nullptr;
     QPushButton* renderer_status_button = nullptr;
     QPushButton* dock_status_button = nullptr;
+    OnlineStatusMonitor* online_status_monitor = nullptr;
     QTimer status_bar_update_timer;
 
     std::unique_ptr<Config> config;
@@ -303,6 +320,9 @@ private:
     ProfilerWidget* profilerWidget;
     MicroProfileDialog* microProfileDialog;
     WaitTreeWidget* waitTreeWidget;
+
+    // Online
+    Core::OnlineInitiator online_initiator;
 
     QAction* actions_recent_files[max_recent_files_item];
 

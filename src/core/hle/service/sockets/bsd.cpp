@@ -42,7 +42,9 @@ void BSD::PollWork::Execute(BSD* bsd) {
 }
 
 void BSD::PollWork::Response(Kernel::HLERequestContext& ctx) {
-    ctx.WriteBuffer(write_buffer);
+    if (!write_buffer.empty()) {
+        ctx.WriteBuffer(write_buffer);
+    }
 
     IPC::ResponseBuilder rb{ctx, 4};
     rb.Push(RESULT_SUCCESS);
@@ -178,7 +180,7 @@ void BSD::Poll(Kernel::HLERequestContext& ctx) {
 
     LOG_DEBUG(Service, "called. nfds={} timeout={}", nfds, timeout);
 
-    ExecuteWork(ctx, "BSD:Poll", timeout != 0,
+    ExecuteWork(ctx, "BSD:Poll", timeout != 0 && nfds != 0,
                 PollWork{
                     .nfds = nfds,
                     .timeout = timeout,
@@ -256,6 +258,22 @@ void BSD::GetSockName(Kernel::HLERequestContext& ctx) {
     rb.Push<s32>(bsd_errno != Errno::SUCCESS ? -1 : 0);
     rb.PushEnum(bsd_errno);
     rb.Push<u32>(static_cast<u32>(write_buffer.size()));
+}
+
+void BSD::GetSockOpt(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp{ctx};
+    const s32 fd = rp.Pop<s32>();
+    const u32 level = rp.Pop<u32>();
+    const u32 optname = rp.Pop<u32>();
+
+    LOG_WARNING(Service, "(STUBBED) called fd={} level={} optname={}", fd, level, optname);
+
+    ctx.WriteBuffer(std::vector<u8>(ctx.GetWriteBufferSize(0)));
+
+    IPC::ResponseBuilder rb{ctx, 4};
+    rb.Push(RESULT_SUCCESS);
+    rb.Push<u32>(0); // ret
+    rb.Push<u32>(0); // errno
 }
 
 void BSD::Listen(Kernel::HLERequestContext& ctx) {
@@ -514,7 +532,7 @@ std::pair<s32, Errno> BSD::PollImpl(std::vector<u8>& write_buffer, std::vector<u
         return result;
     });
 
-    const auto result = Network::Poll(host_pollfds, timeout);
+    const auto result = Network::Poll(host_pollfds.size(), host_pollfds.data(), timeout);
 
     const size_t num = host_pollfds.size();
     for (size_t i = 0; i < num; ++i) {
@@ -573,7 +591,11 @@ Errno BSD::ConnectImpl(s32 fd, const std::vector<u8>& addr) {
     SockAddrIn addr_in;
     std::memcpy(&addr_in, addr.data(), sizeof(addr_in));
 
-    return Translate(file_descriptors[fd]->socket->Connect(Translate(addr_in)));
+    const Network::SockAddrIn host_addr_in = Translate(addr_in);
+    LOG_DEBUG(Service, "Connecting to {}.{}.{}.{}:{}", host_addr_in.ip[0], host_addr_in.ip[1],
+              host_addr_in.ip[2], host_addr_in.ip[3], host_addr_in.portno);
+
+    return Translate(file_descriptors[fd]->socket->Connect(host_addr_in));
 }
 
 Errno BSD::GetPeerNameImpl(s32 fd, std::vector<u8>& write_buffer) {
@@ -587,7 +609,7 @@ Errno BSD::GetPeerNameImpl(s32 fd, std::vector<u8>& write_buffer) {
     }
     const SockAddrIn guest_addrin = Translate(addr_in);
 
-    ASSERT(write_buffer.size() == sizeof(guest_addrin));
+    ASSERT(write_buffer.size() >= sizeof(guest_addrin));
     std::memcpy(write_buffer.data(), &guest_addrin, sizeof(guest_addrin));
     return Translate(bsd_errno);
 }
@@ -603,7 +625,7 @@ Errno BSD::GetSockNameImpl(s32 fd, std::vector<u8>& write_buffer) {
     }
     const SockAddrIn guest_addrin = Translate(addr_in);
 
-    ASSERT(write_buffer.size() == sizeof(guest_addrin));
+    ASSERT(write_buffer.size() >= sizeof(guest_addrin));
     std::memcpy(write_buffer.data(), &guest_addrin, sizeof(guest_addrin));
     return Translate(bsd_errno);
 }
@@ -679,7 +701,8 @@ Errno BSD::SetSockOptImpl(s32 fd, u32 level, OptName optname, size_t optlen, con
     case OptName::RCVTIMEO:
         return Translate(socket->SetRcvTimeo(value));
     default:
-        UNIMPLEMENTED_MSG("Unimplemented optname={}", static_cast<int>(optname));
+        // UNIMPLEMENTED_MSG("Unimplemented optname={}", static_cast<int>(optname));
+        LOG_CRITICAL(Service, "Unimplemented optname={}", static_cast<int>(optname));
         return Errno::SUCCESS;
     }
 }
@@ -828,7 +851,7 @@ void BSD::BuildErrnoResponse(Kernel::HLERequestContext& ctx, Errno bsd_errno) co
 }
 
 BSD::BSD(Core::System& system, const char* name)
-    : ServiceFramework(name), worker_pool{system, this} {
+    : ServiceFramework(name), worker_pool{system, this, "BSD"} {
     // clang-format off
     static const FunctionInfo functions[] = {
         {0, &BSD::RegisterClient, "RegisterClient"},
@@ -848,7 +871,7 @@ BSD::BSD(Core::System& system, const char* name)
         {14, &BSD::Connect, "Connect"},
         {15, &BSD::GetPeerName, "GetPeerName"},
         {16, &BSD::GetSockName, "GetSockName"},
-        {17, nullptr, "GetSockOpt"},
+        {17, &BSD::GetSockOpt, "GetSockOpt"},
         {18, &BSD::Listen, "Listen"},
         {19, nullptr, "Ioctl"},
         {20, &BSD::Fcntl, "Fcntl"},
@@ -872,6 +895,30 @@ BSD::BSD(Core::System& system, const char* name)
 }
 
 BSD::~BSD() = default;
+
+BSD::FileDescriptor* BSD::GetFileDescriptor(s32 fd) noexcept {
+    if (!file_descriptors[fd]) {
+        return nullptr;
+    }
+    return &*file_descriptors[fd];
+}
+
+const BSD::FileDescriptor* BSD::GetFileDescriptor(s32 fd) const noexcept {
+    if (!file_descriptors[fd]) {
+        return nullptr;
+    }
+    return &*file_descriptors[fd];
+}
+
+void BSD::OnGameExit() {
+    for (auto& fd : file_descriptors) {
+        if (fd.has_value() && fd->socket != nullptr && fd->socket->IsOpened()) {
+            fd->socket->Close();
+        }
+
+        fd.reset();
+    }
+}
 
 BSDCFG::BSDCFG() : ServiceFramework{"bsdcfg"} {
     // clang-format off

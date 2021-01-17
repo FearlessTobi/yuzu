@@ -49,7 +49,7 @@ void LogSettings() {
     };
 
     LOG_INFO(Config, "yuzu Configuration:");
-    log_setting("Controls_UseDockedMode", values.use_docked_mode);
+    log_setting("Controls_UseDockedMode", values.use_docked_mode.GetValue());
     log_setting("System_RngSeed", values.rng_seed.GetValue().value_or(0));
     log_setting("System_CurrentUser", values.current_user);
     log_setting("System_LanguageIndex", values.language_index.GetValue());
@@ -79,6 +79,7 @@ void LogSettings() {
     log_setting("Debugging_ProgramArgs", values.program_args);
     log_setting("Services_BCATBackend", values.bcat_backend);
     log_setting("Services_BCATBoxcatLocal", values.bcat_boxcat_local);
+    log_setting("Network_IsAirplaneMode", values.is_airplane_mode);
 }
 
 float Volume() {
@@ -136,6 +137,12 @@ void RestoreGlobalState() {
     values.rng_seed.SetGlobal(true);
     values.custom_rtc.SetGlobal(true);
     values.sound_index.SetGlobal(true);
+
+    // Controls
+    values.players.SetGlobal(true);
+    values.use_docked_mode.SetGlobal(true);
+    values.vibration_enabled.SetGlobal(true);
+    values.motion_enabled.SetGlobal(true);
 }
 
 void Sanitize() {

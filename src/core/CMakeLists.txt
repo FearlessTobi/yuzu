@@ -232,6 +232,8 @@ add_library(core STATIC
     hle/service/acc/errors.h
     hle/service/acc/profile_manager.cpp
     hle/service/acc/profile_manager.h
+    hle/service/acc/token_granter.cpp
+    hle/service/acc/token_granter.h
     hle/service/am/am.cpp
     hle/service/am/am.h
     hle/service/am/applet_ae.cpp
@@ -348,6 +350,8 @@ add_library(core STATIC
     hle/service/friend/friend.h
     hle/service/friend/interface.cpp
     hle/service/friend/interface.h
+    hle/service/friend/query_profile_list.cpp
+    hle/service/friend/query_profile_list.h
     hle/service/glue/arp.cpp
     hle/service/glue/arp.h
     hle/service/glue/bgtc.cpp
@@ -454,6 +458,8 @@ add_library(core STATIC
     hle/service/nvdrv/nvdrv.h
     hle/service/nvdrv/nvmemp.cpp
     hle/service/nvdrv/nvmemp.h
+    hle/service/nvdrv/syncpoint_manager.cpp
+    hle/service/nvdrv/syncpoint_manager.h
     hle/service/nvflinger/buffer_queue.cpp
     hle/service/nvflinger/buffer_queue.h
     hle/service/nvflinger/nvflinger.cpp
@@ -591,6 +597,8 @@ add_library(core STATIC
     network/network.cpp
     network/network.h
     network/sockets.h
+    online_initiator.cpp
+    online_initiator.h
     perf_stats.cpp
     perf_stats.h
     reporter.cpp
@@ -644,7 +652,7 @@ endif()
 create_target_directory_groups(core)
 
 target_link_libraries(core PUBLIC common PRIVATE audio_core video_core)
-target_link_libraries(core PUBLIC Boost::boost PRIVATE fmt::fmt nlohmann_json::nlohmann_json mbedtls opus unicorn zip)
+target_link_libraries(core PUBLIC Boost::boost PRIVATE fmt::fmt nlohmann_json::nlohmann_json MbedTLS::MbedTLS opus unicorn zip)
 
 if (YUZU_ENABLE_BOXCAT)
     target_compile_definitions(core PRIVATE -DYUZU_ENABLE_BOXCAT)

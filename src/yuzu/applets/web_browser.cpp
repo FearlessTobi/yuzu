@@ -87,8 +87,10 @@ QtWebBrowser::QtWebBrowser(GMainWindow& main_window) {
 
 QtWebBrowser::~QtWebBrowser() = default;
 
-void QtWebBrowser::OpenPageLocal(std::string_view url, std::function<void()> unpack_romfs_callback,
-                                 std::function<void()> finished_callback) {
+void QtWebBrowser::OpenPageLocal([[maybe_unused]] std::string_view url,
+                                 [[maybe_unused]] std::function<void()> unpack_romfs_callback,
+                                 [[maybe_unused]] std::function<void()> finished_callback) {
+#ifdef YUZU_USE_QT_WEB_ENGINE
     this->unpack_romfs_callback = std::move(unpack_romfs_callback);
     this->finished_callback = std::move(finished_callback);
 
@@ -100,6 +102,7 @@ void QtWebBrowser::OpenPageLocal(std::string_view url, std::function<void()> unp
         const auto back = url.substr(index);
         emit MainWindowOpenPage(front, back);
     }
+#endif
 }
 
 void QtWebBrowser::MainWindowUnpackRomFS() {

@@ -38,6 +38,8 @@ std::pair<s32, Errno> Translate(std::pair<s32, Network::Errno> value) {
 
 Network::Domain Translate(Domain domain) {
     switch (domain) {
+    case Domain::UNSPECIFIED:
+        return Network::Domain::UNSPECIFIED;
     case Domain::INET:
         return Network::Domain::INET;
     default:
@@ -58,6 +60,8 @@ Domain Translate(Network::Domain domain) {
 
 Network::Type Translate(Type type) {
     switch (type) {
+    case Type::UNSPECIFIED:
+        return Network::Type::UNSPECIFIED;
     case Type::STREAM:
         return Network::Type::STREAM;
     case Type::DGRAM:
@@ -103,6 +107,9 @@ u16 TranslatePollEventsToHost(u32 flags) {
     translate(POLL_ERR, Network::POLL_ERR);
     translate(POLL_HUP, Network::POLL_HUP);
     translate(POLL_NVAL, Network::POLL_NVAL);
+    translate(POLL_RDNORM, Network::POLL_RDNORM);
+    translate(POLL_RDBAND, Network::POLL_RDBAND);
+    translate(POLL_WRBAND, Network::POLL_WRBAND);
 
     UNIMPLEMENTED_IF_MSG(flags != 0, "Unimplemented flags={}", flags);
     return static_cast<u16>(result);
@@ -123,6 +130,9 @@ u16 TranslatePollEventsToGuest(u32 flags) {
     translate(Network::POLL_ERR, POLL_ERR);
     translate(Network::POLL_HUP, POLL_HUP);
     translate(Network::POLL_NVAL, POLL_NVAL);
+    translate(Network::POLL_RDNORM, POLL_RDNORM);
+    translate(Network::POLL_RDBAND, POLL_RDBAND);
+    translate(Network::POLL_WRBAND, POLL_WRBAND);
 
     UNIMPLEMENTED_IF_MSG(flags != 0, "Unimplemented flags={}", flags);
     return static_cast<u16>(result);
@@ -159,6 +169,34 @@ Network::ShutdownHow Translate(ShutdownHow how) {
     default:
         UNIMPLEMENTED_MSG("Unimplemented how={}", static_cast<int>(how));
         return {};
+    }
+}
+
+Network::Protocol Translate(Protocol protocol) {
+    switch (protocol) {
+    case Protocol::UNSPECIFIED:
+        return Network::Protocol::UNSPECIFIED;
+    case Protocol::TCP:
+        return Network::Protocol::TCP;
+    case Protocol::UDP:
+        return Network::Protocol::UDP;
+    default:
+        UNIMPLEMENTED_MSG("Unimplemented protocol={}", static_cast<int>(protocol));
+        return Network::Protocol::UNSPECIFIED;
+    }
+}
+
+Protocol Translate(Network::Protocol protocol) {
+    switch (protocol) {
+    case Network::Protocol::UNSPECIFIED:
+        return Protocol::UNSPECIFIED;
+    case Network::Protocol::TCP:
+        return Protocol::TCP;
+    case Network::Protocol::UDP:
+        return Protocol::UDP;
+    default:
+        UNIMPLEMENTED_MSG("Unimplemented protocol={}", static_cast<int>(protocol));
+        return Protocol::UNSPECIFIED;
     }
 }
 

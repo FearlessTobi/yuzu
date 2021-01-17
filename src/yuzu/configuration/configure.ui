@@ -147,12 +147,12 @@
          <string>Debug</string>
         </attribute>
        </widget>
-       <widget class="ConfigureWeb" name="webTab">
+       <widget class="ConfigureOnline" name="onlineTab">
         <property name="accessibleName">
-         <string>Web</string>
+         <string>Online</string>
         </property>
         <attribute name="title">
-         <string>Web</string>
+         <string>Online</string>
         </attribute>
        </widget>
        <widget class="ConfigureService" name="serviceTab">
@@ -238,9 +238,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ConfigureWeb</class>
+   <class>ConfigureOnline</class>
    <extends>QWidget</extends>
-   <header>configuration/configure_web.h</header>
+   <header>configuration/configure_online.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -275,32 +275,12 @@
    <signal>accepted()</signal>
    <receiver>ConfigureDialog</receiver>
    <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>220</x>
-     <y>380</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>220</x>
-     <y>200</y>
-    </hint>
-   </hints>
   </connection>
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
    <receiver>ConfigureDialog</receiver>
    <slot>reject()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>220</x>
-     <y>380</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>220</x>
-     <y>200</y>
-    </hint>
-   </hints>
   </connection>
  </connections>
 </ui>

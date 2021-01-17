@@ -12,9 +12,12 @@
 #include "yuzu/configuration/configure_input_player.h"
 #include "yuzu/hotkeys.h"
 
-ConfigureDialog::ConfigureDialog(QWidget* parent, HotkeyRegistry& registry,
-                                 InputCommon::InputSubsystem* input_subsystem)
-    : QDialog(parent), ui(new Ui::ConfigureDialog), registry(registry) {
+ConfigureDialog::ConfigureDialog(QWidget* parent, HotkeyRegistry& registry_,
+                                 InputCommon::InputSubsystem* input_subsystem,
+                                 Core::OnlineInitiator& online_initiator,
+                                 OnlineStatusMonitor* online_status_monitor,
+                                 FriendsList* friend_list)
+    : QDialog(parent), ui(new Ui::ConfigureDialog), registry(registry_) {
     Settings::configuring_global = true;
 
     ui->setupUi(this);
@@ -22,6 +25,7 @@ ConfigureDialog::ConfigureDialog(QWidget* parent, HotkeyRegistry& registry,
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
     ui->inputTab->Initialize(input_subsystem);
+    ui->onlineTab->Initialize(online_initiator, online_status_monitor, friend_list);
 
     SetConfiguration();
     PopulateSelectionList();
@@ -52,7 +56,7 @@ void ConfigureDialog::ApplyConfiguration() {
     ui->graphicsAdvancedTab->ApplyConfiguration();
     ui->audioTab->ApplyConfiguration();
     ui->debugTab->ApplyConfiguration();
-    ui->webTab->ApplyConfiguration();
+    ui->onlineTab->ApplyConfiguration();
     ui->serviceTab->ApplyConfiguration();
     Settings::Apply();
     Settings::LogSettings();
@@ -82,13 +86,14 @@ void ConfigureDialog::RetranslateUI() {
 Q_DECLARE_METATYPE(QList<QWidget*>);
 
 void ConfigureDialog::PopulateSelectionList() {
-    const std::array<std::pair<QString, QList<QWidget*>>, 6> items{
-        {{tr("General"), {ui->generalTab, ui->hotkeysTab, ui->uiTab, ui->webTab, ui->debugTab}},
+    const std::array<std::pair<QString, QList<QWidget*>>, 7> items{
+        {{tr("General"), {ui->generalTab, ui->hotkeysTab, ui->uiTab, ui->debugTab}},
          {tr("System"), {ui->systemTab, ui->profileManagerTab, ui->serviceTab, ui->filesystemTab}},
          {tr("CPU"), {ui->cpuTab, ui->cpuDebugTab}},
          {tr("Graphics"), {ui->graphicsTab, ui->graphicsAdvancedTab}},
          {tr("Audio"), {ui->audioTab}},
-         {tr("Controls"), ui->inputTab->GetSubTabs()}},
+         {tr("Controls"), ui->inputTab->GetSubTabs()},
+         {tr("Online"), {ui->onlineTab}}},
     };
 
     [[maybe_unused]] const QSignalBlocker blocker(ui->selectorList);
@@ -128,7 +133,7 @@ void ConfigureDialog::UpdateVisibleTabs() {
         {ui->graphicsAdvancedTab, tr("Advanced")},
         {ui->audioTab, tr("Audio")},
         {ui->debugTab, tr("Debug")},
-        {ui->webTab, tr("Web")},
+        {ui->onlineTab, tr("Online")},
         {ui->uiTab, tr("UI")},
         {ui->filesystemTab, tr("Filesystem")},
         {ui->serviceTab, tr("Services")},
